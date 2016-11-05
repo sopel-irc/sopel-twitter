@@ -43,7 +43,7 @@ def get_url(bot, trigger, match):
         logger.error('%s error reaching the twitter API for %s',
                      response['status'], match.group(0))
 
-    content = json.loads(content)
+    content = json.loads(content.decode('utf-8'))
     message = ('[Twitter] {content[text]} | {content[user][name]} '
                '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
                '| {content[favorite_count]} ♥s')
