@@ -46,15 +46,27 @@ def get_url(bot, trigger, match):
     content = json.loads(content.decode('utf-8'))
     message = ('[Twitter] {content[text]} | {content[user][name]} '
                '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s')
+               '| {content[favorite_count]} ♥s').format(content=content)
+    all_urls = content['entities']['urls']
     if content['is_quote_status']:
         message += ('| Quoting {content[quoted_status][user][name]} '
                     '(@{content[quoted_status][user][screen_name]}): '
-                    '{content[quoted_status][text]}')
+                    '{content[quoted_status][text]}').format(content=content)
         quote_id = content['quoted_status']['id_str']
         for url in content['entities']['urls']:
             expanded_url = url['expanded_url']
             if expanded_url.rsplit('/', 1)[1] == quote_id:
-                content['text'] = content['text'].replace(url['url'], '')
+                message = message.replace(url['url'], '')
                 break
-    bot.say(message.format(content=content))
+        all_urls = all_urls + content['quoted_status']['entities']['urls']
+    all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
+    all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
+
+    for url in all_urls:
+        replaced = message.replace(url[0], url[1])
+        if len(replaced) < 400:  # 400 is a guess to keep the privmsg < 510
+            message = replaced
+        else:
+            break
+
+    bot.say(message)
