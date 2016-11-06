@@ -27,7 +27,7 @@ with open('dev-requirements.txt') as dev_requirements_file:
 
 setup(
     name='sopel_modules.twitter',
-    version='0.1.1',
+    version='0.1.2',
     description='A Twitter module for Sopel',
     long_description=readme + '\n\n' + history,
     author='Elsie Powell',
