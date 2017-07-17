@@ -70,3 +70,31 @@ def get_url(bot, trigger, match):
             break
 
     bot.say(message)
+
+
+@module.url('(?:https?)://twitter.com/(?:#!\/)?([A-Za-z0-9_]{1,15})(!?/status).*')
+def get_url(bot, trigger, match):
+    consumer_key = bot.config.twitter.consumer_key
+    consumer_secret = bot.config.twitter.consumer_secret
+
+    consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
+    client = oauth.Client(consumer)
+    id_ = match.group(1)
+    response, content = client.request(
+        'https://api.twitter.com/1.1/statuses/show/{}.json'.format(id_))
+    if response['status'] != '200':
+        logger.error('%s error reaching the twitter API for %s',
+                     response['status'], match.group(0))
+
+    user = json.loads(content.decode('utf-8'))
+    message = ('[Twitter] @{content[screen_name]}: {content[name]} | '
+               '| Description: {content[description]} '
+               '| Location: {content[location]} '
+               '| Tweets: {content[statuses_count]} '
+               '| Following: {content[friends_count]} '
+               '| Followers: {content[followers_count]}').format(content=user)
+    if 'url' in user.keys() and len(user['url']) > 0
+        message += (' | URL: ' + user['url'])
+
+    bot.say(message)
+
