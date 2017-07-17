@@ -94,20 +94,20 @@ def get_url(bot, trigger, match):
     for url in user.entities['description']['urls']:
         desc = desc.replace(url['url'], url['display_url'])
 
-    url = None
+    profile_url = None
     if hasattr(user, 'url') and user.url is not None:
-        url = user.url
+        profile_url = user.url
         for url in user.entities['url']['urls']:
-            url = desc.replace(url['url'], url['display_url'])
+            profile_url = profile_url.replace(url['url'], url['display_url'])
 
-    message = ('[Twitter] @{user.screen_name}: {user.name} | '
-           '| Description: {desc} '
-           '| Location: {user.location} '
-           '| Tweets: {user.statuses_count} '
-           '| Following: {user.friends_count} '
-           '| Followers: {user.followers_count}').format(user=user, desc=desc)
+    message = ('[Twitter] @{user.screen_name}: {user.name}'
+           ' | Description: {desc}'
+           ' | Location: {user.location}'
+           ' | Tweets: {user.statuses_count}'
+           ' | Following: {user.friends_count}'
+           ' | Followers: {user.followers_count}').format(user=user, desc=desc)
     if url is not None:
-        message += (' | URL: ' + url)
+        message += (' | URL: ' + profile_url)
 
     bot.say(message)
 
