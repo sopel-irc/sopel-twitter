@@ -71,8 +71,8 @@ def get_url(bot, trigger, match):
 
     bot.say(message)
 
-
-@module.url('(?:https?)://twitter.com/(?:#!\/)?([A-Za-z0-9_]{1,15})(!?/status).*')
+# avoid status urls
+@module.url('(?=https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}(?!/status))https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15}).*')
 def get_url(bot, trigger, match):
     consumer_key = bot.config.twitter.consumer_key
     consumer_secret = bot.config.twitter.consumer_secret
