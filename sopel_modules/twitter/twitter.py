@@ -9,13 +9,16 @@ from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
 
+import tweepy
+
 logger = get_logger(__name__)
 
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
-
+    access_token = ValidatedAttribute('access_token', default=NO_DEFAULT)
+    access_token_secret = ValidatedAttribute('access_token_secret', default=NO_DEFAULT)
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
@@ -23,6 +26,10 @@ def configure(config):
         'consumer_key', 'Enter your Twitter consumer key')
     config.twitter.configure_setting(
         'consumer_secret', 'Enter your Twitter consumer secret')
+    config.twitter.configure_setting(
+        'access_token', 'Enter your Twitter access token')
+    config.twitter.configure_setting(
+        'access_token_secret', 'Enter your Twitter access token secret')
 
 
 def setup(bot):
@@ -74,27 +81,23 @@ def get_url(bot, trigger, match):
 # avoid status urls
 @module.url('(?=.*https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}(?!/status))https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15}).*')
 def get_url(bot, trigger, match):
-    consumer_key = bot.config.twitter.consumer_key
-    consumer_secret = bot.config.twitter.consumer_secret
+    auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
+                               bot.config.twitter.consumer_secret)
+    auth.set_access_token(bot.config.twitter.access_token,
+                          bot.config.twitter.access_token_secret)
+    api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
-    consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
-    client = oauth.Client(consumer)
-    id_ = match.group(1)
-    response, content = client.request(
-        'https://api.twitter.com/1.1/users/lookup/{}.json'.format(id_))
-    if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for %s',
-                     response['status'], match.group(0))
+    sn = match.group(1)
+    user = api.get_user(screen_name=sn)
 
-    user = json.loads(content.decode('utf-8'))
     message = ('[Twitter] @{content[screen_name]}: {content[name]} | '
                '| Description: {content[description]} '
                '| Location: {content[location]} '
                '| Tweets: {content[statuses_count]} '
                '| Following: {content[friends_count]} '
-               '| Followers: {content[followers_count]}').format(content=user)
-    if 'url' in user.keys() and len(user['url']) > 0
-        message += (' | URL: ' + user['url'])
+               '| Followers: {content[followers_count]}').format(content=user._json)
+    if hasattr(user, 'url') and len(user.url) > 0:
+        message += (' | URL: ' + user.url)
 
     bot.say(message)
 
