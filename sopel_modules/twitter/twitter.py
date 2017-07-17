@@ -72,7 +72,7 @@ def get_url(bot, trigger, match):
     bot.say(message)
 
 # avoid status urls
-@module.url('(?=https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}(?!/status))https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15}).*')
+@module.url('(?=.*https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}(?!/status))https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15}).*')
 def get_url(bot, trigger, match):
     consumer_key = bot.config.twitter.consumer_key
     consumer_secret = bot.config.twitter.consumer_secret
@@ -81,7 +81,7 @@ def get_url(bot, trigger, match):
     client = oauth.Client(consumer)
     id_ = match.group(1)
     response, content = client.request(
-        'https://api.twitter.com/1.1/statuses/show/{}.json'.format(id_))
+        'https://api.twitter.com/1.1/users/lookup/{}.json'.format(id_))
     if response['status'] != '200':
         logger.error('%s error reaching the twitter API for %s',
                      response['status'], match.group(0))
