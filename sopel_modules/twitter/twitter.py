@@ -95,7 +95,7 @@ def get_url(bot, trigger, match):
         desc = desc.replace(url['url'], url['display_url'])
 
     url = None
-    if hasattr(user, url) and user.url is not None:
+    if hasattr(user, 'url') and user.url is not None:
         url = user.url
         for url in user.entities['url']['urls']:
             url = desc.replace(url['url'], url['display_url'])
