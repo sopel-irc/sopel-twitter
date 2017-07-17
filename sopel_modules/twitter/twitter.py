@@ -90,14 +90,24 @@ def get_url(bot, trigger, match):
     sn = match.group(1)
     user = api.get_user(screen_name=sn)
 
-    message = ('[Twitter] @{content[screen_name]}: {content[name]} | '
-               '| Description: {content[description]} '
-               '| Location: {content[location]} '
-               '| Tweets: {content[statuses_count]} '
-               '| Following: {content[friends_count]} '
-               '| Followers: {content[followers_count]}').format(content=user._json)
-    if hasattr(user, 'url') and len(user.url) > 0:
-        message += (' | URL: ' + user.url)
+    desc = user.description
+    for url in user.entities['description']['urls']:
+        desc = desc.replace(url['url'], url['display_url'])
+
+    url = None
+    if hasattr(user, url) and user.url is not None:
+        url = user.url
+        for url in user.entities['url']['urls']:
+            url = desc.replace(url['url'], url['display_url'])
+
+    message = ('[Twitter] @{user.screen_name}: {user.name} | '
+           '| Description: {desc} '
+           '| Location: {user.location} '
+           '| Tweets: {user.statuses_count} '
+           '| Following: {user.friends_count} '
+           '| Followers: {user.followers_count}').format(user=user, desc=desc)
+    if url is not None:
+        message += (' | URL: ' + url)
 
     bot.say(message)
 
