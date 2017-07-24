@@ -44,10 +44,14 @@ def get_url(bot, trigger, match):
                      response['status'], match.group(0))
 
     content = json.loads(content.decode('utf-8'))
-    message = ('[Twitter] {content[text]} | {content[user][name]} '
-               '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s').format(content=content)
-    all_urls = content['entities']['urls']
+    try:
+        message = ('[Twitter] {content[text]} | {content[user][name]} '
+                   '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
+                   '| {content[favorite_count]} ♥s').format(content=content)
+        all_urls = content['entities']['urls']
+    except:
+        bot.say('[Twitter] Error')
+        return
     if content['is_quote_status']:
         message += ('| Quoting {content[quoted_status][user][name]} '
                     '(@{content[quoted_status][user][screen_name]}): '
