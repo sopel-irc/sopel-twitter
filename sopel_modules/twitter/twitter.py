@@ -36,16 +36,16 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
-@module.url('https?://twitter.com/(?:[^/]*)(?:/status(?:es)?/(\d+)).*')
-def get_url(bot, trigger, match):
+@module.url(r'https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}/status(?:es)?/(\d+)\b')
+def get_tweet(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
     auth.set_access_token(bot.config.twitter.access_token,
                           bot.config.twitter.access_token_secret)
     api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
-    id_ = match.group(1)
-    tweet = api.get_status(id_)
+    tweet_id = match.group(1)
+    tweet = api.get_status(tweet_id)
 
     message = ('[Twitter] {tweet.text} | {tweet.user.name} '
                '(@{tweet.user.screen_name}) | {tweet.retweet_count} RTs '
@@ -53,9 +53,9 @@ def get_url(bot, trigger, match):
     all_urls = tweet.entities['urls']
     if tweet.is_quote_status:
         # add the quoted tweet
-        message += (' | Quoting {tweet.quoted_status["user"]["name"]} '
-                    '(@{tweet.quoted_status["user"]["screen_name"]}): '
-                    '{tweet.quoted_status["text"]}').format(tweet=tweet)
+        message += (' | Quoting {tweet.quoted_status[user][name]} '
+                    '(@{tweet.quoted_status[user][screen_name]}): '
+                    '{tweet.quoted_status[text]}').format(tweet=tweet)
         quote_id = tweet.quoted_status['id_str']
         # remove the link to the quoted tweet
         for url in tweet.entities.urls:
@@ -78,7 +78,7 @@ def get_url(bot, trigger, match):
 
 # avoid status urls
 @module.url(r'https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15})(?!/status)\b')
-def get_url(bot, trigger, match):
+def get_profile(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
     auth.set_access_token(bot.config.twitter.access_token,
