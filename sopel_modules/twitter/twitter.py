@@ -9,9 +9,11 @@ from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
 
-import tweepy
+import tweepy, re
 
 logger = get_logger(__name__)
+
+url_tweet_id = re.compile(r'status(?:es)?/(\d+)$')
 
 
 class TwitterSection(StaticSection):
@@ -35,8 +37,9 @@ def configure(config):
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
-
-@module.url(r'https?://twitter.com/(?:#!/)?[A-Za-z0-9_]{1,15}/status(?:es)?/(\d+)\b')
+# there are lots of exotic status url's. look for anything starting with
+# twitter.com and then ending with /status(es)/number
+@module.url(r'https?://twitter.com/(?:[#!A-Za-z0-9_/]*)?/status(?:es)?/(\d+)\b')
 def get_tweet(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
@@ -48,8 +51,8 @@ def get_tweet(bot, trigger, match):
     tweet = api.get_status(tweet_id)
 
     message = ('[Twitter] {tweet.text} | {tweet.user.name} '
-               '(@{tweet.user.screen_name}) | {tweet.retweet_count} RTs '
-               '| {tweet.favorite_count} ♥s').format(tweet=tweet)
+            '(@{tweet.user.screen_name}) | {tweet.retweet_count:,} RTs '
+               '| {tweet.favorite_count:,} ♥s').format(tweet=tweet)
     all_urls = tweet.entities['urls']
     if tweet.is_quote_status:
         # add the quoted tweet
@@ -58,9 +61,10 @@ def get_tweet(bot, trigger, match):
                     '{tweet.quoted_status[text]}').format(tweet=tweet)
         quote_id = tweet.quoted_status['id_str']
         # remove the link to the quoted tweet
-        for url in tweet.entities.urls:
+        for url in tweet.entities['urls']:
             expanded_url = url['expanded_url']
-            if expanded_url.rsplit('/', 1)[1] == quote_id:
+            match = url_tweet_id.match(expanded_url)
+            if match is not None and match.group(1) == quote_id:
                 message = message.replace(url['url'], '')
                 break
         all_urls = all_urls + tweet.quoted_status['entities']['urls']
