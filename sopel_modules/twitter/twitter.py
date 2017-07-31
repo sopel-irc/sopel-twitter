@@ -59,14 +59,15 @@ def get_tweet(bot, trigger, match):
         message += (' | Quoting {tweet.quoted_status[user][name]} '
                     '(@{tweet.quoted_status[user][screen_name]}): '
                     '{tweet.quoted_status[text]}').format(tweet=tweet)
-        quote_id = tweet.quoted_status['id_str']
+        quote_id = tweet.quoted_status_id_str
         # remove the link to the quoted tweet
         for url in tweet.entities['urls']:
             expanded_url = url['expanded_url']
             match = url_tweet_id.match(expanded_url)
-            if match is not None and match.group(1) == quote_id:
-                message = message.replace(url['url'], '')
-                break
+            if match is not None:
+                if match.group(1) == quote_id or match.group(1) == tweet.id_str:
+                    message = message.replace(url['url'], '')
+                    break
         all_urls = all_urls + tweet.quoted_status['entities']['urls']
     all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
     all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
