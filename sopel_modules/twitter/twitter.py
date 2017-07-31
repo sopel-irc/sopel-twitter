@@ -82,7 +82,7 @@ def get_tweet(bot, trigger, match):
     bot.say(message)
 
 # avoid status urls
-@module.url(r'https?://twitter.com/(?:#!/)?([A-Za-z0-9_]{1,15})(?!/status)\b')
+@module.url(r'https?://twitter.com/(?:#!/|i/web/)?([A-Za-z0-9_]{1,15})(?!/status)\b')
 def get_profile(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
