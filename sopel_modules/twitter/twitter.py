@@ -13,7 +13,7 @@ import tweepy, re
 
 logger = get_logger(__name__)
 
-url_tweet_id = re.compile(r'status(?:es)?/(\d+)$')
+url_tweet_id = re.compile(r'.*status(?:es)?/(\d+)$')
 
 
 class TwitterSection(StaticSection):
@@ -39,7 +39,7 @@ def setup(bot):
 
 # there are lots of exotic status url's. look for anything starting with
 # twitter.com and then ending with /status(es)/number
-@module.url(r'https?://twitter.com/(?:[#!A-Za-z0-9_/]*)?/status(?:es)?/(\d+)\b')
+@module.url(r'https?://twitter.com/[#!A-Za-z0-9_/]*/status(?:es)?/(\d+)\b')
 def get_tweet(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
