@@ -109,7 +109,7 @@ def get_profile(bot, trigger, match):
            ' | Tweets: {user.statuses_count}'
            ' | Following: {user.friends_count}'
            ' | Followers: {user.followers_count}').format(user=user, desc=desc)
-    if url is not None:
+    if profile_url is not None:
         message += (' | URL: ' + profile_url)
 
     bot.say(message)
