@@ -45,7 +45,7 @@ def get_tweet(bot, trigger, match):
                           bot.config.twitter.access_token_secret)
     api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
-    tweet_id = match.group(1)
+    tweet_id = match.group(2)
     tweet = api.get_status(tweet_id)
 
     message = ('[Twitter] {tweet.text} | {tweet.user.name} '
