@@ -9,7 +9,7 @@ import tweepy, re
 
 
 logger = get_logger(__name__)
-
+url_tweet_id = re.compile(r'.*status(?:es)?/(\d+)$')
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
