@@ -111,4 +111,3 @@ def get_profile(bot, trigger, match):
         message += (' | URL: ' + profile_url)
 
     bot.say(message)
-
