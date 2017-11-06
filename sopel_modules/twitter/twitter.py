@@ -46,9 +46,9 @@ def get_tweet(bot, trigger, match):
     api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
     tweet_id = match.group(2)
-    tweet = api.get_status(tweet_id)
+    tweet = api.get_status(tweet_id, tweet_mode='extended')
 
-    message = ('[Twitter] {tweet.text} | {tweet.user.name} '
+    message = ('[Twitter] {tweet.full_text} | {tweet.user.name} '
             '(@{tweet.user.screen_name}) | {tweet.retweet_count:,} RTs '
                '| {tweet.favorite_count:,} ♥s').format(tweet=tweet)
     all_urls = tweet.entities['urls']
@@ -56,7 +56,7 @@ def get_tweet(bot, trigger, match):
         # add the quoted tweet
         message += (' | Quoting {tweet.quoted_status[user][name]} '
                     '(@{tweet.quoted_status[user][screen_name]}): '
-                    '{tweet.quoted_status[text]}').format(tweet=tweet)
+                    '{tweet.quoted_status[full_text]}').format(tweet=tweet)
         quote_id = tweet.quoted_status_id_str
         # remove the link to the quoted tweet
         for url in tweet.entities['urls']:
