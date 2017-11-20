@@ -1,20 +1,15 @@
 # coding=utf-8
 from __future__ import unicode_literals, absolute_import, division, print_function
-
-import json
-
-import oauth2 as oauth
-
 from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
-
+import json
+import oauth2 as oauth
 import tweepy, re
 
+
 logger = get_logger(__name__)
-
 url_tweet_id = re.compile(r'.*status(?:es)?/(\d+)$')
-
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
@@ -39,7 +34,10 @@ def setup(bot):
 
 # there are lots of exotic status url's. look for anything starting with
 # twitter.com and then ending with /status(es)/number
-@module.url(r'https?://twitter.com/[#!A-Za-z0-9_/]*/status(?:es)?/(\d+)\b')
+#
+# Possibilities twitter.com/i/...:
+# streams live moments videos web stickers directory status cards discover
+@module.url(r'https?:\/\/twitter\.com\/[#!A-Za-z0-9_\/]*\/(status(?:es)?|tweet)?\/(\d+)\b')
 def get_tweet(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
@@ -47,10 +45,10 @@ def get_tweet(bot, trigger, match):
                           bot.config.twitter.access_token_secret)
     api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
-    tweet_id = match.group(1)
-    tweet = api.get_status(tweet_id)
+    tweet_id = match.group(2)
+    tweet = api.get_status(tweet_id, tweet_mode='extended')
 
-    message = ('[Twitter] {tweet.text} | {tweet.user.name} '
+    message = ('[Twitter] {tweet.full_text} | {tweet.user.name} '
             '(@{tweet.user.screen_name}) | {tweet.retweet_count:,} RTs '
                '| {tweet.favorite_count:,} ♥s').format(tweet=tweet)
     all_urls = tweet.entities['urls']
@@ -58,7 +56,7 @@ def get_tweet(bot, trigger, match):
         # add the quoted tweet
         message += (' | Quoting {tweet.quoted_status[user][name]} '
                     '(@{tweet.quoted_status[user][screen_name]}): '
-                    '{tweet.quoted_status[text]}').format(tweet=tweet)
+                    '{tweet.quoted_status[full_text]}').format(tweet=tweet)
         quote_id = tweet.quoted_status_id_str
         # remove the link to the quoted tweet
         for url in tweet.entities['urls']:
@@ -82,7 +80,7 @@ def get_tweet(bot, trigger, match):
     bot.say(message)
 
 # avoid status urls
-@module.url(r'https?://twitter.com/(?:#!/|i/web/)?([A-Za-z0-9_]{1,15})(?!/status)\b')
+@module.url(r'https?:\/\/twitter\.com\/(?!#!\/|i)([A-Za-z0-9_]{1,15})(?!\/status)\b')
 def get_profile(bot, trigger, match):
     auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
                                bot.config.twitter.consumer_secret)
@@ -113,4 +111,3 @@ def get_profile(bot, trigger, match):
         message += (' | URL: ' + profile_url)
 
     bot.say(message)
-
