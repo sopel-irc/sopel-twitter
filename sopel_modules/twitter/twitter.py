@@ -1,21 +1,21 @@
 # coding=utf-8
 from __future__ import unicode_literals, absolute_import, division, print_function
-
-import json
-
-import oauth2 as oauth
-
 from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
+import json
+import oauth2 as oauth
+import tweepy, re
+
 
 logger = get_logger(__name__)
-
+url_tweet_id = re.compile(r'.*status(?:es)?/(\d+)$')
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
-
+    access_token = ValidatedAttribute('access_token', default=NO_DEFAULT)
+    access_token_secret = ValidatedAttribute('access_token_secret', default=NO_DEFAULT)
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
@@ -23,42 +23,50 @@ def configure(config):
         'consumer_key', 'Enter your Twitter consumer key')
     config.twitter.configure_setting(
         'consumer_secret', 'Enter your Twitter consumer secret')
+    config.twitter.configure_setting(
+        'access_token', 'Enter your Twitter access token')
+    config.twitter.configure_setting(
+        'access_token_secret', 'Enter your Twitter access token secret')
 
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
+# there are lots of exotic status url's. look for anything starting with
+# twitter.com and then ending with /status(es)/number
+#
+# Possibilities twitter.com/i/...:
+# streams live moments videos web stickers directory status cards discover
+@module.url(r'https?:\/\/twitter\.com\/[#!A-Za-z0-9_\/]*\/(status(?:es)?|tweet)?\/(\d+)\b')
+def get_tweet(bot, trigger, match):
+    auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
+                               bot.config.twitter.consumer_secret)
+    auth.set_access_token(bot.config.twitter.access_token,
+                          bot.config.twitter.access_token_secret)
+    api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
 
-@module.url('https?://twitter.com/([^/]*)(?:/status/(\d+)).*')
-def get_url(bot, trigger, match):
-    consumer_key = bot.config.twitter.consumer_key
-    consumer_secret = bot.config.twitter.consumer_secret
+    tweet_id = match.group(2)
+    tweet = api.get_status(tweet_id, tweet_mode='extended')
 
-    consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
-    client = oauth.Client(consumer)
-    id_ = match.group(2)
-    response, content = client.request(
-        'https://api.twitter.com/1.1/statuses/show/{}.json'.format(id_))
-    if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for %s',
-                     response['status'], match.group(0))
-
-    content = json.loads(content.decode('utf-8'))
-    message = ('[Twitter] {content[text]} | {content[user][name]} '
-               '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s').format(content=content)
-    all_urls = content['entities']['urls']
-    if content['is_quote_status']:
-        message += ('| Quoting {content[quoted_status][user][name]} '
-                    '(@{content[quoted_status][user][screen_name]}): '
-                    '{content[quoted_status][text]}').format(content=content)
-        quote_id = content['quoted_status']['id_str']
-        for url in content['entities']['urls']:
+    message = ('[Twitter] {tweet.full_text} | {tweet.user.name} '
+            '(@{tweet.user.screen_name}) | {tweet.retweet_count:,} RTs '
+               '| {tweet.favorite_count:,} ♥s').format(tweet=tweet)
+    all_urls = tweet.entities['urls']
+    if tweet.is_quote_status:
+        # add the quoted tweet
+        message += (' | Quoting {tweet.quoted_status[user][name]} '
+                    '(@{tweet.quoted_status[user][screen_name]}): '
+                    '{tweet.quoted_status[full_text]}').format(tweet=tweet)
+        quote_id = tweet.quoted_status_id_str
+        # remove the link to the quoted tweet
+        for url in tweet.entities['urls']:
             expanded_url = url['expanded_url']
-            if expanded_url.rsplit('/', 1)[1] == quote_id:
-                message = message.replace(url['url'], '')
-                break
-        all_urls = all_urls + content['quoted_status']['entities']['urls']
+            match = url_tweet_id.match(expanded_url)
+            if match is not None:
+                if match.group(1) == quote_id or match.group(1) == tweet.id_str:
+                    message = message.replace(url['url'], '')
+                    break
+        all_urls = all_urls + tweet.quoted_status['entities']['urls']
     all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
     all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
 
@@ -68,5 +76,38 @@ def get_url(bot, trigger, match):
             message = replaced
         else:
             break
+
+    bot.say(message)
+
+# avoid status urls
+@module.url(r'https?:\/\/twitter\.com\/(?!#!\/|i)([A-Za-z0-9_]{1,15})(?!\/status)\b')
+def get_profile(bot, trigger, match):
+    auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
+                               bot.config.twitter.consumer_secret)
+    auth.set_access_token(bot.config.twitter.access_token,
+                          bot.config.twitter.access_token_secret)
+    api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
+
+    sn = match.group(1)
+    user = api.get_user(screen_name=sn)
+
+    desc = user.description
+    for url in user.entities['description']['urls']:
+        desc = desc.replace(url['url'], url['display_url'])
+
+    profile_url = None
+    if hasattr(user, 'url') and user.url is not None:
+        profile_url = user.url
+        for url in user.entities['url']['urls']:
+            profile_url = profile_url.replace(url['url'], url['display_url'])
+
+    message = ('[Twitter] @{user.screen_name}: {user.name}'
+           ' | Description: {desc}'
+           ' | Location: {user.location}'
+           ' | Tweets: {user.statuses_count}'
+           ' | Following: {user.friends_count}'
+           ' | Followers: {user.followers_count}').format(user=user, desc=desc)
+    if profile_url is not None:
+        message += (' | URL: ' + profile_url)
 
     bot.say(message)
