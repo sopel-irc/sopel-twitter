@@ -47,6 +47,7 @@ def get_tweet(bot, trigger, match):
 
     tweet_id = match.group(2)
     tweet = api.get_status(tweet_id, tweet_mode='extended')
+    tweet.full_text = tweet.full_text.replace('\n', ' ')
 
     message = ('[Twitter] {tweet.full_text} | {tweet.user.name} '
             '(@{tweet.user.screen_name}) | {tweet.retweet_count:,} RTs '
