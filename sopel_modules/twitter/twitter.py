@@ -43,7 +43,13 @@ def get_tweet(bot, trigger, match):
     api = create_api(bot.config.twitter)
 
     tweet_id = match.group(2)
-    tweet = api.get_status(tweet_id, tweet_mode='extended')
+    try:
+        tweet = api.get_status(tweet_id, tweet_mode='extended')
+    except tweepy.TweepError as e:
+        logger.exception('{} raised from looking up tweet_id={}'
+                         .format(e, tweet_id))
+        return bot.say('[Twitter] Error: link to a deleted, private or invalid'
+                       ' tweet ID.')
     tweet.full_text = tweet.full_text.replace('\n', ' ')
 
     message = ('[Twitter] {tweet.full_text} | {tweet.user.name} '
@@ -83,7 +89,11 @@ def get_tweet(bot, trigger, match):
 def get_profile(bot, trigger, match):
     api = create_api(bot.config.twitter)
     sn = match.group(1)
-    user = api.get_user(screen_name=sn)
+    try:
+        user = api.get_user(screen_name=sn)
+    except tweepy.TweepError:
+        logger.exception('{} raised from looking up @{}'.format(e, user))
+        return bot.say('[Twitter] Error: Invalid twitter handle.')
 
     desc = user.description
     for url in user.entities['description']['urls']:
