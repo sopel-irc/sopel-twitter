@@ -3,19 +3,19 @@ from __future__ import unicode_literals, absolute_import, division, print_functi
 from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
-import json
-import oauth2 as oauth
 import tweepy, re
 
 
 logger = get_logger(__name__)
 url_tweet_id = re.compile(r'.*status(?:es)?/(\d+)$')
 
+
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
     access_token = ValidatedAttribute('access_token', default=NO_DEFAULT)
     access_token_secret = ValidatedAttribute('access_token_secret', default=NO_DEFAULT)
+
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
@@ -32,6 +32,7 @@ def configure(config):
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
+
 # there are lots of exotic status url's. look for anything starting with
 # twitter.com and then ending with /status(es)/number
 #
@@ -39,11 +40,7 @@ def setup(bot):
 # streams live moments videos web stickers directory status cards discover
 @module.url(r'https?:\/\/(?:mobile\.)?twitter\.com\/[#!A-Za-z0-9_\/]*\/(status(?:es)?|tweet)?\/(\d+)\b')
 def get_tweet(bot, trigger, match):
-    auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
-                               bot.config.twitter.consumer_secret)
-    auth.set_access_token(bot.config.twitter.access_token,
-                          bot.config.twitter.access_token_secret)
-    api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
+    api = create_api(bot.config.twitter)
 
     tweet_id = match.group(2)
     tweet = api.get_status(tweet_id, tweet_mode='extended')
@@ -80,15 +77,11 @@ def get_tweet(bot, trigger, match):
 
     bot.say(message)
 
+
 # avoid status urls
 @module.url(r'https?:\/\/(?:mobile\.)?twitter\.com\/(?!#!\/|i)([A-Za-z0-9_]{1,15})(?!\/status)\b')
 def get_profile(bot, trigger, match):
-    auth = tweepy.OAuthHandler(bot.config.twitter.consumer_key,
-                               bot.config.twitter.consumer_secret)
-    auth.set_access_token(bot.config.twitter.access_token,
-                          bot.config.twitter.access_token_secret)
-    api = tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
-
+    api = create_api(bot.config.twitter)
     sn = match.group(1)
     user = api.get_user(screen_name=sn)
 
@@ -112,3 +105,12 @@ def get_profile(bot, trigger, match):
         message += (' | URL: ' + profile_url)
 
     bot.say(message)
+
+
+def create_api(tkey):
+    auth = tweepy.OAuthHandler(tkey.consumer_key,
+                               tkey.consumer_secret)
+    auth.set_access_token(tkey.access_token,
+                          tkey.access_token_secret)
+    return tweepy.API(auth_handler=auth, wait_on_rate_limit=True)
+
