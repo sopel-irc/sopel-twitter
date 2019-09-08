@@ -71,6 +71,9 @@ def get_url(bot, trigger, match):
                '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
                '| {content[favorite_count]} ♥s').format(content=content, text=text)
     all_urls = content['entities']['urls']
+    # use extended_entities for media; plain entities object will contain only
+    # the first photo of the up to 4 currently allowed per tweet
+    all_media = content['extended_entities']['media']
     if content['is_quote_status']:
         try:
             text = content['quoted_status']['full_text']
@@ -87,8 +90,21 @@ def get_url(bot, trigger, match):
                 message = message.replace(url['url'], '')
                 break
         all_urls = all_urls + content['quoted_status']['entities']['urls']
+        all_media = all_media + content['quoted_status']['extended_entities']['media']
     all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
     all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
+    all_media = ((m['url'], m['media_url_https']) for m in all_media)
+    all_media = sorted(all_media, key=lambda pair: len(pair[1]))
+
+    for media in all_media:
+        replaced = message.replace(media[0], media[1])
+        if replaced == message:
+            # tack it on the end; it's not the first media attachment
+            replaced = replaced + ' ' + media[1]
+        if len(replaced) < 400:  # 400 is a guess to keep the privmsg < 510
+            message = replaced
+        else:
+            break
 
     for url in all_urls:
         replaced = message.replace(url[0], url[1])
