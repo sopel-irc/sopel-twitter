@@ -29,6 +29,16 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
+def get_extended_media(tweet):
+    """
+    Twitter annoyingly only returns extended_entities if certain entities exist.
+    """
+    # Get either the extended entities or an empty dict
+    maybe_entities = tweet.get('extended_entities', {})
+    # Safely return either the media key or an empty list
+    return maybe_entities.get('media', [])
+
+
 @module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
 def get_url(bot, trigger, match):
     consumer_key = bot.config.twitter.consumer_key
@@ -73,7 +83,7 @@ def get_url(bot, trigger, match):
     all_urls = content['entities']['urls']
     # use extended_entities for media; plain entities object will contain only
     # the first photo of the up to 4 currently allowed per tweet
-    all_media = content['extended_entities']['media']
+    all_media = get_extended_media(content)
     if content['is_quote_status']:
         try:
             text = content['quoted_status']['full_text']
@@ -90,7 +100,7 @@ def get_url(bot, trigger, match):
                 message = message.replace(url['url'], '')
                 break
         all_urls = all_urls + content['quoted_status']['entities']['urls']
-        all_media = all_media + content['quoted_status']['extended_entities']['media']
+        all_media = all_media + get_extended_media(content['quoted_status'])
     all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
     all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
     all_media = ((m['url'], m['media_url_https']) for m in all_media)
