@@ -48,6 +48,7 @@ def get_url(bot, trigger, match):
         text = content['full_text']
     except KeyError:
         text = content['text']
+    text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
     message = ('[Twitter] {text} | {content[user][name]} '
                '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
                '| {content[favorite_count]} ♥s').format(content=content, text=text)
