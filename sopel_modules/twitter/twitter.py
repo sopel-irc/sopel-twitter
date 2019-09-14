@@ -44,6 +44,25 @@ def get_url(bot, trigger, match):
                      response['status'], match.group(0))
 
     content = json.loads(content.decode('utf-8'))
+    if content.get('errors', []):
+        msg = "Twitter returned an error"
+        try:
+            error = content['errors'][0]
+        except IndexError:
+            error = {}
+        try:
+            msg = msg + ': ' + error['message']
+            if msg[-1] != '.':
+                msg = msg + '.'  # some texts end with a period, but not all -___-
+        except KeyError:
+            msg = msg + '. :('
+        msg = msg + ' Maybe the tweet was deleted?'
+        bot.say(msg)
+        logger.debug('Tweet ID {id} returned error code {code}: "{message}"'
+            .format(id=id_, code=error.get('code', '-1'),
+                message=error.get('message', '(unknown description)')))
+        return
+
     try:
         text = content['full_text']
     except KeyError:
