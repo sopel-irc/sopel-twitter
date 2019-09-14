@@ -38,15 +38,20 @@ def get_url(bot, trigger, match):
     client = oauth.Client(consumer)
     id_ = match.group(2)
     response, content = client.request(
-        'https://api.twitter.com/1.1/statuses/show/{}.json'.format(id_))
+        'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
     if response['status'] != '200':
         logger.error('%s error reaching the twitter API for %s',
                      response['status'], match.group(0))
 
     content = json.loads(content.decode('utf-8'))
-    message = ('[Twitter] {content[text]} | {content[user][name]} '
+    try:
+        text = content['full_text']
+    except KeyError:
+        text = content['text']
+    text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
+    message = ('[Twitter] {text} | {content[user][name]} '
                '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s').format(content=content)
+               '| {content[favorite_count]} ♥s').format(content=content, text=text)
     all_urls = content['entities']['urls']
     if content['is_quote_status']:
         message += ('| Quoting {content[quoted_status][user][name]} '
