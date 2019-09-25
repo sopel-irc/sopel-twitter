@@ -55,8 +55,7 @@ def get_url(bot, trigger, match):
             if msg[-1] != '.':
                 msg = msg + '.'  # some texts end with a period, but not all -___-
         except KeyError:
-            msg = msg + '. :('
-        msg = msg + ' Maybe the tweet was deleted?'
+            msg = msg + '. :( Maybe the tweet was deleted?'
         bot.say(msg)
         logger.debug('Tweet ID {id} returned error code {code}: "{message}"'
             .format(id=id_, code=error.get('code', '-1'),
