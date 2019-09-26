@@ -34,6 +34,14 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
+def get_client(bot):
+    """Utility to get an OAuth client. Reduces boilerplate."""
+    return oauth.Client(
+        oauth.Consumer(
+            key=bot.config.twitter.consumer_key,
+            secret=bot.config.twitter.consumer_secret))
+
+
 def get_extended_media(tweet):
     """
     Twitter annoyingly only returns extended_entities if certain entities exist.
@@ -88,11 +96,7 @@ def format_tweet(tweet):
 
 @module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
 def get_url(bot, trigger, match):
-    consumer_key = bot.config.twitter.consumer_key
-    consumer_secret = bot.config.twitter.consumer_secret
-
-    consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
-    client = oauth.Client(consumer)
+    client = get_client(bot)
     id_ = match.group(2)
     response, content = client.request(
         'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
