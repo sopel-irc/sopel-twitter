@@ -94,15 +94,24 @@ def format_tweet(tweet):
     return u['name'] + ' (@' + u['screen_name'] + '): ' + text
 
 
-@module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
+@module.url(r'https?://twitter.com/([^/]*)(?:/status/(\d+))?.*')
 def get_url(bot, trigger, match):
-    client = get_client(bot)
+    sn = match.group(1)
     id_ = match.group(2)
+
+    if id_:
+        output_status(bot, id_)
+    else:
+        output_user(bot, sn)
+
+
+def output_status(bot, id_):
+    client = get_client(bot)
     response, content = client.request(
         'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
     if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for %s',
-                     response['status'], match.group(0))
+        logger.error('%s error reaching the twitter API for status ID %s',
+                     response['status'], id_)
 
     tweet = json.loads(content.decode('utf-8'))
     if tweet.get('errors', []):
@@ -134,3 +143,40 @@ def get_url(bot, trigger, match):
         bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
                                 RTs=tweet['retweet_count'],
                                 hearts=tweet['favorite_count']))
+
+
+def output_user(bot, sn):
+    client = get_client(bot)
+    response, content = client.request(
+        'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
+    if response['status'] != '200':
+        logger.error('%s error reaching the twitter API for screen name %s',
+                     response['status'], sn)
+
+    content = json.loads(content.decode('utf-8'))
+    if content.get('errors', []):
+        msg = "Twitter returned an error"
+        try:
+            error = content['errors'][0]
+        except IndexError:
+            error = {}
+        try:
+            msg = msg + ': ' + error['message']
+            if msg[-1] != '.':
+                msg = msg + '.'  # some texts end with a period, but not all... thanks, Twitter
+        except KeyError:
+            msg = msg + '. :( Maybe the user doesn\'t exist?'
+        bot.say(msg)
+        logger.debug('Screen name {sn} returned error code {code}: "{message}"'
+            .format(sn=sn, code=error.get('code', '-1'),
+                message=error.get('message', '(unknown description)')))
+        return
+
+    user = content
+    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}'
+               ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
+               ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s').format(
+               user=user, verified=(' ✔️' if user['verified'] else ''),
+               protected=(' 🔒' if user['protected'] else ''))
+
+    bot.say(message)
