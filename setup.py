@@ -27,12 +27,12 @@ with open('dev-requirements.txt') as dev_requirements_file:
 
 setup(
     name='sopel_modules.twitter',
-    version='0.1.2',
+    version='0.2.0',
     description='A Twitter module for Sopel',
     long_description=readme + '\n\n' + history,
-    author='Elsie Powell',
-    author_email='elsie@elsiepowell.com',
-    url='http://github.com/sopel-irc/sopel-twitter',
+    author='dgw',
+    author_email='dgw@technobabbl.es',
+    url='https://github.com/sopel-irc/sopel-twitter',
     packages=find_packages('.'),
     namespace_packages=['sopel_modules'],
     include_package_data=True,
