@@ -1,0 +1,28 @@
+Changes between 0.1.2 and 0.2.0
+===============================
+
+Changed:
+* Now requires Sopel 7.x
+* Newlines in tweet text will be replaced with a carriage return symbol, to
+  indicate author intention
+
+Added:
+* Handling of 280-character tweets
+* More graceful handling of API errors
+
+Meta:
+* Package metadata updated (new maintainer, HTTPS links)
+
+
+Changes between 0.1.1 and 0.1.2
+===============================
+
+Added:
+* Tweet link handling
+
+
+Changes between 0.1.0 and 0.1.1
+===============================
+
+Fixed:
+* Unicode on Python 3

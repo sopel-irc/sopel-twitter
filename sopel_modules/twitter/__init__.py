@@ -1,13 +1,13 @@
 # coding=utf8
-"""Sopel Twitter
+"""sopel-twitter
 
-A Twitter module for Sopel
+A Twitter plugin for Sopel
 """
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 from .twitter import *
 
-__author__ = 'Elsie Powell'
-__email__ = 'elsie@elsiepowell.com'
-__version__ = '0.1.0'
+__author__ = 'dgw'
+__email__ = 'dgw@technobabbl.es'
+__version__ = '0.2.0'
 

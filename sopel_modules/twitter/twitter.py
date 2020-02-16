@@ -29,7 +29,7 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
-@module.url('https?://twitter.com/([^/]*)(?:/status/(\d+)).*')
+@module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
 def get_url(bot, trigger, match):
     consumer_key = bot.config.twitter.consumer_key
     consumer_secret = bot.config.twitter.consumer_secret
