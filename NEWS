@@ -1,14 +1,21 @@
+Changes between 0.2.0 and 0.2.1
+===============================
+
+Fixed:
+* Some quoted tweets would cause `KeyError: 'text'` (#9)
+
+
 Changes between 0.1.2 and 0.2.0
 ===============================
 
 Changed:
-* Now requires Sopel 7.x
+* Now requires Sopel 7.x (#8)
 * Newlines in tweet text will be replaced with a carriage return symbol, to
-  indicate author intention
+  indicate author intention (#4)
 
 Added:
-* Handling of 280-character tweets
-* More graceful handling of API errors
+* Handling of 280-character tweets (#4)
+* More graceful handling of API errors (#6)
 
 Meta:
 * Package metadata updated (new maintainer, HTTPS links)
