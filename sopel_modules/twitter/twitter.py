@@ -72,9 +72,14 @@ def get_url(bot, trigger, match):
                '| {content[favorite_count]} ♥s').format(content=content, text=text)
     all_urls = content['entities']['urls']
     if content['is_quote_status']:
+        try:
+            text = content['quoted_status']['full_text']
+        except KeyError:
+            text = content['quoted_status']['text']
+        text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
         message += ('| Quoting {content[quoted_status][user][name]} '
                     '(@{content[quoted_status][user][screen_name]}): '
-                    '{content[quoted_status][text]}').format(content=content)
+                    '{text}').format(content=content, text=text)
         quote_id = content['quoted_status']['id_str']
         for url in content['entities']['urls']:
             expanded_url = url['expanded_url']
