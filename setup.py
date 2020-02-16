@@ -30,6 +30,7 @@ setup(
     version='0.2.0',
     description='A Twitter module for Sopel',
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/markdown',
     author='dgw',
     author_email='dgw@technobabbl.es',
     url='https://github.com/sopel-irc/sopel-twitter',
