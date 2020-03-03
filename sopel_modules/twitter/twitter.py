@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 import json
+import re
 
 import oauth2 as oauth
 
@@ -39,6 +40,50 @@ def get_extended_media(tweet):
     return maybe_entities.get('media', [])
 
 
+def format_tweet(tweet):
+    """
+    Format a tweet object for display.
+
+    :param tweet: the tweet object, as decoded JSON
+    :return: the formatted tweet, and formatted quoted tweet if it exists
+    :rtype: tuple
+    """
+    try:
+        text = tweet['full_text']
+    except KeyError:
+        text = tweet['text']
+    text = text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
+    urls = tweet['entities']['urls']
+    media = get_extended_media(tweet)
+
+    # Remove link to quoted status itself, if it's present
+    if tweet['is_quote_status']:
+        for url in urls:
+            longurl = url['expanded_url']
+            if longurl.rsplit('/', 1)[1] == tweet['quoted_status']['id_str']:
+                longurl = re.escape(longurl)
+                text = re.sub('\\s*{longurl}\\s*'.format(longurl=longurl), '', text)
+                break  # there should only be one
+
+    # Expand media links so clients with image previews can show them
+    for item in media:
+        replaced = text.replace(item['url'], item['media_url_https'])
+        if replaced == text:
+            # Twitter only puts the first media item's URL in the tweet body
+            # We have to append the others ourselves
+            text += item['media_url_https']
+        else:
+            text = replaced
+
+    # Expand other links to full URLs
+    for url in urls:
+        text = text.replace(url['url'], url['expanded_url'])
+
+    # Done! At least, until Twitter adds more entity types...
+    u = tweet['user']
+    return u['name'] + ' (@' + u['screen_name'] + '): ' + text
+
+
 @module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
 def get_url(bot, trigger, match):
     consumer_key = bot.config.twitter.consumer_key
@@ -72,55 +117,14 @@ def get_url(bot, trigger, match):
                 message=error.get('message', '(unknown description)')))
         return
 
-    try:
-        text = content['full_text']
-    except KeyError:
-        text = content['text']
-    text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
-    message = ('[Twitter] {text} | {content[user][name]} '
-               '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s').format(content=content, text=text)
-    all_urls = content['entities']['urls']
-    # use extended_entities for media; plain entities object will contain only
-    # the first photo of the up to 4 currently allowed per tweet
-    all_media = get_extended_media(content)
-    if content['is_quote_status']:
-        try:
-            text = content['quoted_status']['full_text']
-        except KeyError:
-            text = content['quoted_status']['text']
-        text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
-        message += ('| Quoting {content[quoted_status][user][name]} '
-                    '(@{content[quoted_status][user][screen_name]}): '
-                    '{text}').format(content=content, text=text)
-        quote_id = content['quoted_status']['id_str']
-        for url in content['entities']['urls']:
-            expanded_url = url['expanded_url']
-            if expanded_url.rsplit('/', 1)[1] == quote_id:
-                message = message.replace(url['url'], '')
-                break
-        all_urls = all_urls + content['quoted_status']['entities']['urls']
-        all_media = all_media + get_extended_media(content['quoted_status'])
-    all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
-    all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
-    all_media = ((m['url'], m['media_url_https']) for m in all_media)
-    all_media = sorted(all_media, key=lambda pair: len(pair[1]))
+    tweet = json.loads(content.decode('utf-8'))
+    text = format_tweet(tweet)
+    quote = None
 
-    for media in all_media:
-        replaced = message.replace(media[0], media[1])
-        if replaced == message:
-            # tack it on the end; it's not the first media attachment
-            replaced = replaced + ' ' + media[1]
-        if len(replaced) < 400:  # 400 is a guess to keep the privmsg < 510
-            message = replaced
-        else:
-            break
+    if tweet['is_quote_status']:
+        quote = format_tweet(tweet['quoted_status'])
 
-    for url in all_urls:
-        replaced = message.replace(url[0], url[1])
-        if len(replaced) < 400:  # 400 is a guess to keep the privmsg < 510
-            message = replaced
-        else:
-            break
+    message = "[Twitter] {tweet}{quote}".format(tweet=text,
+        quote=' | Quoting {quote}'.format(quote=quote) if quote else '')
 
-    bot.say(message)
+    bot.say(message, max_messages=3)
