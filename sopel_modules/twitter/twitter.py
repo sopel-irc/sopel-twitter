@@ -59,10 +59,8 @@ def format_tweet(tweet):
     # Remove link to quoted status itself, if it's present
     if tweet['is_quote_status']:
         for url in urls:
-            longurl = url['expanded_url']
-            if longurl.rsplit('/', 1)[1] == tweet['quoted_status']['id_str']:
-                longurl = re.escape(longurl)
-                text = re.sub('\\s*{longurl}\\s*'.format(longurl=longurl), '', text)
+            if url['expanded_url'].rsplit('/', 1)[1] == tweet['quoted_status_id_str']:
+                text = re.sub('\\s*{url}\\s*'.format(url=re.escape(url['url'])), '', text)
                 break  # there should only be one
 
     # Expand media links so clients with image previews can show them
