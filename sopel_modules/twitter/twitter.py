@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
+    show_quoted_tweets = ValidatedAttribute('show_quoted_tweets', bool, default=True)
 
 
 def configure(config):
@@ -24,6 +25,9 @@ def configure(config):
         'consumer_key', 'Enter your Twitter consumer key')
     config.twitter.configure_setting(
         'consumer_secret', 'Enter your Twitter consumer secret')
+    config.twitter.configure_setting(
+        'show_quoted_tweets', 'When a tweet quotes another status, '
+        'show the quoted tweet on a second IRC line?')
 
 
 def setup(bot):
@@ -117,13 +121,14 @@ def get_url(bot, trigger, match):
 
     tweet = json.loads(content.decode('utf-8'))
     text = format_tweet(tweet)
-    quote = None
 
-    if tweet['is_quote_status']:
-        quote = format_tweet(tweet['quoted_status'])
+    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s"
 
-    message = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s{quote}".format(
-        tweet=text, RTs=tweet['retweet_count'], hearts=tweet['favorite_count'],
-        quote=' | Quoting {quote}'.format(quote=quote) if quote else '')
+    bot.say(template.format(
+        tweet=text, RTs=tweet['retweet_count'], hearts=tweet['favorite_count']))
 
-    bot.say(message, max_messages=3)
+    if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
+        tweet = tweet['quoted_status']
+        quote = 'Quoting: ' + format_tweet(tweet)
+        bot.say(template.format(tweet=quote, RTs=tweet['retweet_count'],
+                                hearts=tweet['favorite_count']))
