@@ -122,7 +122,8 @@ def get_url(bot, trigger, match):
     if tweet['is_quote_status']:
         quote = format_tweet(tweet['quoted_status'])
 
-    message = "[Twitter] {tweet}{quote}".format(tweet=text,
+    message = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s{quote}".format(
+        tweet=text, RTs=tweet['retweet_count'], hearts=tweet['favorite_count'],
         quote=' | Quoting {quote}'.format(quote=quote) if quote else '')
 
     bot.say(message, max_messages=3)
