@@ -7,10 +7,9 @@ import re
 
 import oauth2 as oauth
 
-from sopel import module
+from sopel import module, tools
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
-from sopel.tools import time
 
 logger = get_logger(__name__)
 
@@ -180,9 +179,9 @@ def output_user(bot, trigger, sn):
         url = ''
 
     joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
-    tz = time.get_timezone(
+    tz = tools.time.get_timezone(
         bot.db, bot.config, None, trigger.nick, trigger.sender)
-    joined = time.format_time(
+    joined = tools.time.format_time(
         bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
 
     if user.get('description', None):
@@ -204,4 +203,9 @@ def output_user(bot, trigger, sn):
                joined=joined,
                bio=(' | ' + bio if bio else ''))
 
+    # It's unlikely to happen, but theoretically we *might* need to truncate the message if enough
+    # of the field values are ridiculously long. Best to be safe.
+    message, excess = tools.get_sendable_message(message)
+    if excess:
+        message += ' […]'
     bot.say(message)
