@@ -100,11 +100,11 @@ def get_url(bot, trigger, match):
         logger.error('%s error reaching the twitter API for %s',
                      response['status'], match.group(0))
 
-    content = json.loads(content.decode('utf-8'))
-    if content.get('errors', []):
+    tweet = json.loads(content.decode('utf-8'))
+    if tweet.get('errors', []):
         msg = "Twitter returned an error"
         try:
-            error = content['errors'][0]
+            error = tweet['errors'][0]
         except IndexError:
             error = {}
         try:
@@ -119,16 +119,14 @@ def get_url(bot, trigger, match):
                 message=error.get('message', '(unknown description)')))
         return
 
-    tweet = json.loads(content.decode('utf-8'))
-    text = format_tweet(tweet)
-
     template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s"
 
-    bot.say(template.format(
-        tweet=text, RTs=tweet['retweet_count'], hearts=tweet['favorite_count']))
+    bot.say(template.format(tweet=format_tweet(tweet),
+                            RTs=tweet['retweet_count'],
+                            hearts=tweet['favorite_count']))
 
     if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
         tweet = tweet['quoted_status']
-        quote = 'Quoting: ' + format_tweet(tweet)
-        bot.say(template.format(tweet=quote, RTs=tweet['retweet_count'],
+        bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
+                                RTs=tweet['retweet_count'],
                                 hearts=tweet['favorite_count']))
