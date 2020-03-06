@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import unicode_literals, absolute_import, division, print_function
 
+from datetime import datetime
 import json
 import re
 
@@ -9,6 +10,7 @@ import oauth2 as oauth
 from sopel import module
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
+from sopel.tools import time
 
 logger = get_logger(__name__)
 
@@ -102,7 +104,7 @@ def get_url(bot, trigger, match):
     if id_:
         output_status(bot, id_)
     else:
-        output_user(bot, sn)
+        output_user(bot, trigger, sn)
 
 
 def output_status(bot, id_):
@@ -145,7 +147,7 @@ def output_status(bot, id_):
                                 hearts=tweet['favorite_count']))
 
 
-def output_user(bot, sn):
+def output_user(bot, trigger, sn):
     client = get_client(bot)
     response, content = client.request(
         'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
@@ -153,11 +155,11 @@ def output_user(bot, sn):
         logger.error('%s error reaching the twitter API for screen name %s',
                      response['status'], sn)
 
-    content = json.loads(content.decode('utf-8'))
-    if content.get('errors', []):
+    user = json.loads(content.decode('utf-8'))
+    if user.get('errors', []):
         msg = "Twitter returned an error"
         try:
-            error = content['errors'][0]
+            error = user['errors'][0]
         except IndexError:
             error = {}
         try:
@@ -165,18 +167,33 @@ def output_user(bot, sn):
             if msg[-1] != '.':
                 msg = msg + '.'  # some texts end with a period, but not all... thanks, Twitter
         except KeyError:
-            msg = msg + '. :( Maybe the user doesn\'t exist?'
+            msg = msg + '. :( Maybe that user doesn\'t exist?'
         bot.say(msg)
         logger.debug('Screen name {sn} returned error code {code}: "{message}"'
             .format(sn=sn, code=error.get('code', '-1'),
                 message=error.get('message', '(unknown description)')))
         return
 
-    user = content
-    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}'
+    if user.get('url', None):
+        url = user['entities']['url']['urls'][0]['expanded_url']  # Twitter c'mon, this is absurd
+    else:
+        url = ''
+
+    joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
+    tz = time.get_timezone(
+        bot.db, bot.config, None, trigger.nick, trigger.sender)
+    joined_localized = time.format_time(
+        bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
+
+    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
                ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
-               ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s').format(
-               user=user, verified=(' ✔️' if user['verified'] else ''),
-               protected=(' 🔒' if user['protected'] else ''))
+               ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s'
+               ' | Joined: {abstime}').format(
+               user=user,
+               verified=(' ✔️' if user['verified'] else ''),
+               protected=(' 🔒' if user['protected'] else ''),
+               location=(' | ' + user['location'] if user.get('location', None) else ''),
+               url=(' | ' + url if url else ''),
+               abstime=joined_localized)
 
     bot.say(message)
