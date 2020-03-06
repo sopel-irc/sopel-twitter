@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 import json
+import re
 
 import oauth2 as oauth
 
@@ -15,6 +16,7 @@ logger = get_logger(__name__)
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
+    show_quoted_tweets = ValidatedAttribute('show_quoted_tweets', bool, default=True)
 
 
 def configure(config):
@@ -23,10 +25,65 @@ def configure(config):
         'consumer_key', 'Enter your Twitter consumer key')
     config.twitter.configure_setting(
         'consumer_secret', 'Enter your Twitter consumer secret')
+    config.twitter.configure_setting(
+        'show_quoted_tweets', 'When a tweet quotes another status, '
+        'show the quoted tweet on a second IRC line?')
 
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
+
+
+def get_extended_media(tweet):
+    """
+    Twitter annoyingly only returns extended_entities if certain entities exist.
+    """
+    # Get either the extended entities or an empty dict
+    maybe_entities = tweet.get('extended_entities', {})
+    # Safely return either the media key or an empty list
+    return maybe_entities.get('media', [])
+
+
+def format_tweet(tweet):
+    """
+    Format a tweet object for display.
+
+    :param tweet: the tweet object, as decoded JSON
+    :return: the formatted tweet, and formatted quoted tweet if it exists
+    :rtype: tuple
+    """
+    try:
+        text = tweet['full_text']
+    except KeyError:
+        text = tweet['text']
+    text = text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
+    urls = tweet['entities']['urls']
+    media = get_extended_media(tweet)
+
+    # Remove link to quoted status itself, if it's present
+    if tweet['is_quote_status']:
+        for url in urls:
+            if url['expanded_url'].rsplit('/', 1)[1] == tweet['quoted_status_id_str']:
+                text = re.sub('\\s*{url}\\s*'.format(url=re.escape(url['url'])), '', text)
+                break  # there should only be one
+
+    # Expand media links so clients with image previews can show them
+    for item in media:
+        replaced = text.replace(item['url'], item['media_url_https'])
+        if replaced == text:
+            # Twitter only puts the first media item's URL in the tweet body
+            # We have to append the others ourselves
+            text += item['media_url_https']
+        else:
+            text = replaced
+
+    # Expand other links to full URLs
+    for url in urls:
+        text = text.replace(url['url'], url['expanded_url'])
+
+    # Done! At least, until Twitter adds more entity types...
+    u = tweet['user']
+    return u['name'] + ' (@' + u['screen_name'] + '): ' + text
 
 
 @module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
@@ -62,39 +119,16 @@ def get_url(bot, trigger, match):
                 message=error.get('message', '(unknown description)')))
         return
 
-    try:
-        text = content['full_text']
-    except KeyError:
-        text = content['text']
-    text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
-    message = ('[Twitter] {text} | {content[user][name]} '
-               '(@{content[user][screen_name]}) | {content[retweet_count]} RTs '
-               '| {content[favorite_count]} ♥s').format(content=content, text=text)
-    all_urls = content['entities']['urls']
-    if content['is_quote_status']:
-        try:
-            text = content['quoted_status']['full_text']
-        except KeyError:
-            text = content['quoted_status']['text']
-        text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
-        message += ('| Quoting {content[quoted_status][user][name]} '
-                    '(@{content[quoted_status][user][screen_name]}): '
-                    '{text}').format(content=content, text=text)
-        quote_id = content['quoted_status']['id_str']
-        for url in content['entities']['urls']:
-            expanded_url = url['expanded_url']
-            if expanded_url.rsplit('/', 1)[1] == quote_id:
-                message = message.replace(url['url'], '')
-                break
-        all_urls = all_urls + content['quoted_status']['entities']['urls']
-    all_urls = ((u['url'], u['expanded_url']) for u in all_urls)
-    all_urls = sorted(all_urls, key=lambda pair: len(pair[1]))
+    tweet = json.loads(content.decode('utf-8'))
+    text = format_tweet(tweet)
 
-    for url in all_urls:
-        replaced = message.replace(url[0], url[1])
-        if len(replaced) < 400:  # 400 is a guess to keep the privmsg < 510
-            message = replaced
-        else:
-            break
+    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s"
 
-    bot.say(message)
+    bot.say(template.format(
+        tweet=text, RTs=tweet['retweet_count'], hearts=tweet['favorite_count']))
+
+    if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
+        tweet = tweet['quoted_status']
+        quote = 'Quoting: ' + format_tweet(tweet)
+        bot.say(template.format(tweet=quote, RTs=tweet['retweet_count'],
+                                hearts=tweet['favorite_count']))
