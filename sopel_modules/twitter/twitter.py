@@ -182,18 +182,26 @@ def output_user(bot, trigger, sn):
     joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
     tz = time.get_timezone(
         bot.db, bot.config, None, trigger.nick, trigger.sender)
-    joined_localized = time.format_time(
+    joined = time.format_time(
         bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
+
+    if user.get('description', None):
+        bio = user['description']
+        for link in user['entities']['description']['urls']:  # bloody t.co everywhere
+            bio = bio.replace(link['url'], link['expanded_url'])
+    else:
+        bio = ''
 
     message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
                ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
                ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s'
-               ' | Joined: {abstime}').format(
+               ' | Joined: {joined}{bio}').format(
                user=user,
                verified=(' ✔️' if user['verified'] else ''),
                protected=(' 🔒' if user['protected'] else ''),
                location=(' | ' + user['location'] if user.get('location', None) else ''),
                url=(' | ' + url if url else ''),
-               abstime=joined_localized)
+               joined=joined,
+               bio=(' | ' + bio if bio else ''))
 
     bot.say(message)
