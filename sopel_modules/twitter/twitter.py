@@ -1,12 +1,13 @@
 # coding=utf-8
 from __future__ import unicode_literals, absolute_import, division, print_function
 
+from datetime import datetime
 import json
 import re
 
 import oauth2 as oauth
 
-from sopel import module
+from sopel import module, tools
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
 
@@ -32,6 +33,14 @@ def configure(config):
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
+
+
+def get_client(bot):
+    """Utility to get an OAuth client. Reduces boilerplate."""
+    return oauth.Client(
+        oauth.Consumer(
+            key=bot.config.twitter.consumer_key,
+            secret=bot.config.twitter.consumer_secret))
 
 
 def get_extended_media(tweet):
@@ -86,19 +95,24 @@ def format_tweet(tweet):
     return u['name'] + ' (@' + u['screen_name'] + '): ' + text
 
 
-@module.url('https?://twitter.com/([^/]*)(?:/status/(\\d+)).*')
+@module.url(r'https?://twitter.com/([^/]*)(?:/status/(\d+))?.*')
 def get_url(bot, trigger, match):
-    consumer_key = bot.config.twitter.consumer_key
-    consumer_secret = bot.config.twitter.consumer_secret
-
-    consumer = oauth.Consumer(key=consumer_key, secret=consumer_secret)
-    client = oauth.Client(consumer)
+    sn = match.group(1)
     id_ = match.group(2)
+
+    if id_:
+        output_status(bot, id_)
+    else:
+        output_user(bot, trigger, sn)
+
+
+def output_status(bot, id_):
+    client = get_client(bot)
     response, content = client.request(
         'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
     if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for %s',
-                     response['status'], match.group(0))
+        logger.error('%s error reaching the twitter API for status ID %s',
+                     response['status'], id_)
 
     tweet = json.loads(content.decode('utf-8'))
     if tweet.get('errors', []):
@@ -130,3 +144,68 @@ def get_url(bot, trigger, match):
         bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
                                 RTs=tweet['retweet_count'],
                                 hearts=tweet['favorite_count']))
+
+
+def output_user(bot, trigger, sn):
+    client = get_client(bot)
+    response, content = client.request(
+        'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
+    if response['status'] != '200':
+        logger.error('%s error reaching the twitter API for screen name %s',
+                     response['status'], sn)
+
+    user = json.loads(content.decode('utf-8'))
+    if user.get('errors', []):
+        msg = "Twitter returned an error"
+        try:
+            error = user['errors'][0]
+        except IndexError:
+            error = {}
+        try:
+            msg = msg + ': ' + error['message']
+            if msg[-1] != '.':
+                msg = msg + '.'  # some texts end with a period, but not all... thanks, Twitter
+        except KeyError:
+            msg = msg + '. :( Maybe that user doesn\'t exist?'
+        bot.say(msg)
+        logger.debug('Screen name {sn} returned error code {code}: "{message}"'
+            .format(sn=sn, code=error.get('code', '-1'),
+                message=error.get('message', '(unknown description)')))
+        return
+
+    if user.get('url', None):
+        url = user['entities']['url']['urls'][0]['expanded_url']  # Twitter c'mon, this is absurd
+    else:
+        url = ''
+
+    joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
+    tz = tools.time.get_timezone(
+        bot.db, bot.config, None, trigger.nick, trigger.sender)
+    joined = tools.time.format_time(
+        bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
+
+    if user.get('description', None):
+        bio = user['description']
+        for link in user['entities']['description']['urls']:  # bloody t.co everywhere
+            bio = bio.replace(link['url'], link['expanded_url'])
+    else:
+        bio = ''
+
+    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
+               ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
+               ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s'
+               ' | Joined: {joined}{bio}').format(
+               user=user,
+               verified=(' ✔️' if user['verified'] else ''),
+               protected=(' 🔒' if user['protected'] else ''),
+               location=(' | ' + user['location'] if user.get('location', None) else ''),
+               url=(' | ' + url if url else ''),
+               joined=joined,
+               bio=(' | ' + bio if bio else ''))
+
+    # It's unlikely to happen, but theoretically we *might* need to truncate the message if enough
+    # of the field values are ridiculously long. Best to be safe.
+    message, excess = tools.get_sendable_message(message)
+    if excess:
+        message += ' […]'
+    bot.say(message)
