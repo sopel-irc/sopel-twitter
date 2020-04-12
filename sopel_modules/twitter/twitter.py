@@ -95,18 +95,35 @@ def format_tweet(tweet):
     return u['name'] + ' (@' + u['screen_name'] + '): ' + text
 
 
+def format_time(bot, trigger, stamp):
+    """
+    Format a Twitter-provided timestamp based on user/channel settings.
+
+    :param bot: the Sopel instance from the triggering event
+    :param trigger: the trigger itself
+    :param str stamp: the timestamp
+    :return: the formatted publish timestamp of the ``tweet``
+    :rtype: str
+    """
+    parsed = datetime.strptime(stamp, '%a %b %d %H:%M:%S %z %Y')
+    tz = tools.time.get_timezone(
+        bot.db, bot.config, None, trigger.nick, trigger.sender)
+    return tools.time.format_time(
+        bot.db, bot.config, tz, trigger.nick, trigger.sender, parsed)
+
+
 @module.url(r'https?://twitter.com/([^/]*)(?:/status/(\d+))?.*')
 def get_url(bot, trigger, match):
     sn = match.group(1)
     id_ = match.group(2)
 
     if id_:
-        output_status(bot, id_)
+        output_status(bot, trigger, id_)
     else:
         output_user(bot, trigger, sn)
 
 
-def output_status(bot, id_):
+def output_status(bot, trigger, id_):
     client = get_client(bot)
     response, content = client.request(
         'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
@@ -133,17 +150,19 @@ def output_status(bot, id_):
                 message=error.get('message', '(unknown description)')))
         return
 
-    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s"
+    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
 
     bot.say(template.format(tweet=format_tweet(tweet),
                             RTs=tweet['retweet_count'],
-                            hearts=tweet['favorite_count']))
+                            hearts=tweet['favorite_count'],
+                            posted=format_time(bot, trigger, tweet['created_at'])))
 
     if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
         tweet = tweet['quoted_status']
         bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
                                 RTs=tweet['retweet_count'],
-                                hearts=tweet['favorite_count']))
+                                hearts=tweet['favorite_count'],
+                                posted=format_time(bot, trigger, tweet['created_at'])))
 
 
 def output_user(bot, trigger, sn):
@@ -178,12 +197,6 @@ def output_user(bot, trigger, sn):
     else:
         url = ''
 
-    joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
-    tz = tools.time.get_timezone(
-        bot.db, bot.config, None, trigger.nick, trigger.sender)
-    joined = tools.time.format_time(
-        bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
-
     if user.get('description', None):
         bio = user['description']
         for link in user['entities']['description']['urls']:  # bloody t.co everywhere
@@ -200,7 +213,7 @@ def output_user(bot, trigger, sn):
                protected=(' 🔒' if user['protected'] else ''),
                location=(' | ' + user['location'] if user.get('location', None) else ''),
                url=(' | ' + url if url else ''),
-               joined=joined,
+               joined=format_time(bot, trigger, user['created_at']),
                bio=(' | ' + bio if bio else ''))
 
     # It's unlikely to happen, but theoretically we *might* need to truncate the message if enough
