@@ -92,7 +92,7 @@ def format_tweet(tweet):
 
     # Done! At least, until Twitter adds more entity types...
     u = tweet['user']
-    return u['name'] + ' (@' + u['screen_name'] + '): ' + text
+    return u['name'] + ' (@' + u['screen_name'] + '): ' + tools.web.decode(text)
 
 
 @module.url(r'https?://twitter.com/([^/]*)(?:/status/(\d+))?.*')
@@ -184,12 +184,11 @@ def output_user(bot, trigger, sn):
     joined = tools.time.format_time(
         bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
 
-    if user.get('description', None):
-        bio = user['description']
+    bio = user.get('description', '')
+    if bio:
         for link in user['entities']['description']['urls']:  # bloody t.co everywhere
             bio = bio.replace(link['url'], link['expanded_url'])
-    else:
-        bio = ''
+        bio = tools.web.decode(bio)
 
     message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
                ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
