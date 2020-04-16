@@ -95,15 +95,20 @@ def format_tweet(tweet):
     return u['name'] + ' (@' + u['screen_name'] + '): ' + text
 
 
-@module.url(r'https?://twitter.com/([^/]*)(?:/status/(\d+))?.*')
+@module.url(r'https?://twitter\.com/(?P<user>[^/]*)(?:/status/(?P<status>\d+))?.*')
+@module.url(r'https?://twitter\.com/i/web/status/(?P<status>\d+).*')
 def get_url(bot, trigger, match):
-    sn = match.group(1)
-    id_ = match.group(2)
-
-    if id_:
-        output_status(bot, id_)
+    try:
+        status = match.group('status')
+    except IndexError:
+        try:
+            user = match.group('user')
+        except IndexError:
+            return  # don't know how to handle this link; silently fail
+        else:
+            output_user(bot, trigger, user)
     else:
-        output_user(bot, trigger, sn)
+        output_status(bot, status)
 
 
 def output_status(bot, id_):
