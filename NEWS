@@ -1,3 +1,18 @@
+Changes between 0.2.1 and 0.3.0
+===============================
+
+Changed:
+* Tweet output includes a timestamp now (#13)
+* Improved media link handling (#5, #12)
+
+Added:
+* Handling for profile/user links (#7)
+* Handling for less common `/i/web/status` style links (#11)
+
+Fixed:
+* Decode HTML entities before output (#14)
+
+
 Changes between 0.2.0 and 0.2.1
 ===============================
 
