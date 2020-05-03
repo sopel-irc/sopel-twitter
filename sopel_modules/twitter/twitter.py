@@ -141,7 +141,7 @@ def format_time(bot, trigger, stamp):
         bot.db, bot.config, tz, trigger.nick, trigger.sender, parsed)
 
 
-@module.url(r'https?://twitter\.com/(?P<user>[^/]*)(?:/status/(?P<status>\d+))?.*')
+@module.url(r'https?://twitter\.com/(?P<user>[^/]+)(?:$|/status/(?P<status>\d+)).*')
 @module.url(r'https?://twitter\.com/i/web/status/(?P<status>\d+).*')
 def get_url(bot, trigger, match):
     try:
