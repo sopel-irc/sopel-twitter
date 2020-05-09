@@ -144,17 +144,18 @@ def format_time(bot, trigger, stamp):
 @module.url(r'https?://twitter\.com/(?P<user>[^/]+)(?:$|/status/(?P<status>\d+)).*')
 @module.url(r'https?://twitter\.com/i/web/status/(?P<status>\d+).*')
 def get_url(bot, trigger, match):
-    try:
-        status = match.group('status')
-    except IndexError:
-        try:
-            user = match.group('user')
-        except IndexError:
-            return  # don't know how to handle this link; silently fail
-        else:
-            output_user(bot, trigger, user)
-    else:
+    things = match.groupdict()
+    user = things.get('user', None)
+    status = things.get('status', None)
+
+    if status:
         output_status(bot, trigger, status)
+    elif user:
+        output_user(bot, trigger, user)
+    else:
+        # don't know how to handle this link; silently fail
+        # explicit is better than implicit
+        return
 
 
 def output_status(bot, trigger, id_):
