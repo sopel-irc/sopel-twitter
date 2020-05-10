@@ -9,5 +9,5 @@ from .twitter import *
 
 __author__ = 'dgw'
 __email__ = 'dgw@technobabbl.es'
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 

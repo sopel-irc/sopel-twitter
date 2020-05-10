@@ -1,3 +1,10 @@
+Changes between 0.3.1 and 0.3.2
+===============================
+
+Fixed:
+* Regression in profile link handling (#16)
+
+
 Changes between 0.3.0 and 0.3.1
 ===============================
 
