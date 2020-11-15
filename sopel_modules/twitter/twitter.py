@@ -159,6 +159,7 @@ def get_url(bot, trigger, match):
 
 
 @module.commands('twitinfo')
+@module.example('.twitinfo SopelIRC')
 def user_command(bot, trigger):
     if not trigger.group(3):
         bot.reply("What user do you want me to look up?")
