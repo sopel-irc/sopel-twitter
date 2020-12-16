@@ -2,30 +2,28 @@
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 from datetime import datetime
-import json
 import re
 
-import oauth2 as oauth
+import requests
 
 from sopel import module, tools
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
 
-logger = get_logger(__name__)
+logger = tools.get_logger('twitter')
 
 
 class TwitterSection(StaticSection):
-    consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
-    consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
+    bearer_token = ValidatedAttribute('bearer_token', default=NO_DEFAULT)
+    consumer_key = ValidatedAttribute('consumer_key')
+    consumer_secret = ValidatedAttribute('consumer_secret')
     show_quoted_tweets = ValidatedAttribute('show_quoted_tweets', bool, default=True)
 
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
     config.twitter.configure_setting(
-        'consumer_key', 'Enter your Twitter consumer key')
-    config.twitter.configure_setting(
-        'consumer_secret', 'Enter your Twitter consumer secret')
+        'bearer_token', "Enter your Twitter API app's bearer token")
     config.twitter.configure_setting(
         'show_quoted_tweets', 'When a tweet quotes another status, '
         'show the quoted tweet on a second IRC line?')
@@ -35,22 +33,9 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
-def get_client(bot):
-    """Utility to get an OAuth client. Reduces boilerplate."""
-    return oauth.Client(
-        oauth.Consumer(
-            key=bot.config.twitter.consumer_key,
-            secret=bot.config.twitter.consumer_secret))
-
-
-def get_extended_media(tweet):
-    """
-    Twitter annoyingly only returns extended_entities if certain entities exist.
-    """
-    # Get either the extended entities or an empty dict
-    maybe_entities = tweet.get('extended_entities', {})
-    # Safely return either the media key or an empty list
-    return maybe_entities.get('media', [])
+def build_headers(twitter_settings):
+    """Return headers for requests to the Twitter API."""
+    return {'Authorization': 'Bearer ' + twitter_settings.bearer_token}
 
 
 def get_preferred_media_item_link(item):
@@ -65,6 +50,8 @@ def get_preferred_media_item_link(item):
     Ideally we'd like clients that support it to show inline video, not a
     thumbnail, so we need to apply a little guesswork to figure out if we can
     output a video clip instead of a static image.
+
+    TODO: Not updated for API v2 yet!
     """
     video_info = item.get('video_info', {})
     variants = video_info.get('variants', [])
@@ -89,18 +76,15 @@ def format_tweet(tweet):
     :return: the formatted tweet, and formatted quoted tweet if it exists
     :rtype: tuple
     """
-    try:
-        text = tweet['full_text']
-    except KeyError:
-        text = tweet['text']
-    text = text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
-    urls = tweet['entities']['urls']
-    media = get_extended_media(tweet)
+    text = tweet['text'].replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
+    urls = tweet.get('entities', {}).get('urls', [])
+    media = tweet.get('entities', {}).get('media', [])
+    quoted_ids = [t['id'] for t in tweet['referenced_tweets'] if t['type'] == 'quoted']
 
     # Remove link to quoted status itself, if it's present
-    if tweet['is_quote_status']:
+    if quoted_ids:
         for url in urls:
-            if url['expanded_url'].rsplit('/', 1)[1] == tweet['quoted_status_id_str']:
+            if url['expanded_url'].rsplit('/', 1)[1] in quoted_ids:
                 text = re.sub('\\s*{url}\\s*'.format(url=re.escape(url['url'])), '', text)
                 break  # there should only be one
 
@@ -121,7 +105,7 @@ def format_tweet(tweet):
 
     # Done! At least, until Twitter adds more entity types...
     u = tweet['user']
-    return u['name'] + ' (@' + u['screen_name'] + '): ' + tools.web.decode(text)
+    return u['name'] + ' (@' + u['username'] + '): ' + tools.web.decode(text)
 
 
 def format_time(bot, trigger, stamp):
@@ -159,30 +143,72 @@ def get_url(bot, trigger, match):
 
 
 def output_status(bot, trigger, id_):
-    client = get_client(bot)
-    response, content = client.request(
-        'https://api.twitter.com/1.1/statuses/show/{}.json?tweet_mode=extended'.format(id_))
-    if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for status ID %s',
-                     response['status'], id_)
+    params = {
+        'tweet.fields': 'attachments,created_at,entities,public_metrics,referenced_tweets,text',
+        'user.fields': 'created_at,name,username,verified',
+        'media.fields': 'type,url',  # 'url' is undocumented as of 2020-12-16, only works for some types
+        'expansions': 'attachments.media_keys,author_id,referenced_tweets.id,referenced_tweets.id.author_id',
+    }
+    response = requests.get(
+        'https://api.twitter.com/2/tweets/{}'.format(id_),
+        headers=build_headers(bot.config.twitter),
+        params=params,
+    )
+    if response.status_code != 200:
+        logger.error('%d error reaching the twitter API for status ID %s',
+                     response.status_code, id_)
 
-    tweet = json.loads(content.decode('utf-8'))
-    if tweet.get('errors', []):
-        msg = "Twitter returned an error"
-        try:
-            error = tweet['errors'][0]
-        except IndexError:
-            error = {}
-        try:
-            msg = msg + ': ' + error['message']
-            if msg[-1] != '.':
-                msg = msg + '.'  # some texts end with a period, but not all -___-
-        except KeyError:
-            msg = msg + '. :( Maybe the tweet was deleted?'
-        bot.say(msg)
-        logger.debug('Tweet ID {id} returned error code {code}: "{message}"'
-            .format(id=id_, code=error.get('code', '-1'),
-                message=error.get('message', '(unknown description)')))
+    try:
+        tweet = response.json()
+    except ValueError:
+        logger.error('Twitter API responded with non-JSON payload: %s', response.text)
+        bot.reply('Twitter API responded with non-JSON payload. See my logs for details.')
+        return
+
+    try:
+        tweet = tweet['data']
+    except KeyError:
+        if tweet.get('errors', []):
+            # Successful request, but something wrong (e.g. deleted tweet)
+            msg = "Twitter returned an error"
+            try:
+                error = tweet['errors'][0]
+            except IndexError:
+                error = {}
+            try:
+                msg = msg + ': ' + error['detail']
+                if msg[-1] != '.':
+                    msg = msg + '.'  # some texts end with a period, but not all -___-
+            except KeyError:
+                msg = msg + '. :( Maybe the tweet was deleted?'
+            bot.reply(msg)
+            logger.debug('Tweet ID {id} returned "{title}": "{message}"'
+                .format(id=id_, title=error.get('title', '<unknown error>'),
+                    message=error.get('detail', '(unknown description)')))
+            return
+
+        # Likely a problem with API client configuration on developer site
+        err_title = tweet.get('title', None)
+        err_type = tweet.get('type', None)
+        err_reason = tweet.get('reason', None)
+        err_detail = tweet.get('detail', None)
+
+        msg = 'Twitter error: {}. See my logs for details.'.format(
+            err_title or '<unknown error>',
+        )
+        bot.reply(msg)
+        logger.error(
+            'Twitter returned %d "%s" while fetching Tweet ID %s',
+            response.status_code,
+            tweet.get('title'),
+            id_,
+        )
+        if err_type:
+            logger.error("Twitter's error type: %s", err_type)
+        if err_reason:
+            logger.error("Twitter's reason: %s", err_reason)
+        if err_detail:
+            logger.error("Error detail: %s", err_detail)
         return
 
     template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
@@ -201,14 +227,13 @@ def output_status(bot, trigger, id_):
 
 
 def output_user(bot, trigger, sn):
-    client = get_client(bot)
-    response, content = client.request(
+    response = requests.get(
         'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
-    if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for screen name %s',
-                     response['status'], sn)
+    if response.status_code != 200:
+        logger.error('%d error reaching the twitter API for screen name %s',
+                     response.status_code, sn)
 
-    user = json.loads(content.decode('utf-8'))
+    user = response.json()
     if user.get('errors', []):
         msg = "Twitter returned an error"
         try:
