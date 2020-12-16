@@ -165,6 +165,8 @@ def output_status(bot, trigger, id_):
     if response['status'] != '200':
         logger.error('%s error reaching the twitter API for status ID %s',
                      response['status'], id_)
+        bot.reply("Couldn't retrieve Tweet info.")
+        return
 
     tweet = json.loads(content.decode('utf-8'))
     if tweet.get('errors', []):
@@ -207,6 +209,8 @@ def output_user(bot, trigger, sn):
     if response['status'] != '200':
         logger.error('%s error reaching the twitter API for screen name %s',
                      response['status'], sn)
+        bot.reply("Couldn't retrieve user info.")
+        return
 
     user = json.loads(content.decode('utf-8'))
     if user.get('errors', []):
