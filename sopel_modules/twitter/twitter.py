@@ -158,6 +158,16 @@ def get_url(bot, trigger, match):
         return
 
 
+@module.commands('twitinfo')
+@module.example('.twitinfo SopelIRC')
+def user_command(bot, trigger):
+    if not trigger.group(3):
+        bot.reply("What user do you want me to look up?")
+        return module.NOLIMIT
+
+    output_user(bot, trigger, trigger.group(3))
+
+
 def output_status(bot, trigger, id_):
     client = get_client(bot)
     response, content = client.request(
