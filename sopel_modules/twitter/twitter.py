@@ -101,7 +101,10 @@ def format_tweet(tweet):
     if tweet['is_quote_status']:
         for url in urls:
             if url['expanded_url'].rsplit('/', 1)[1] == tweet['quoted_status_id_str']:
-                text = re.sub('\\s*{url}\\s*'.format(url=re.escape(url['url'])), '', text)
+                # this regex matches zero-or-more whitespace behind the link, but
+                # whitespace after the link only matches if it's trailing (that is,
+                # not followed by more non-whitespace characters).
+                text = re.sub(r'\s*%s(\s+(?!\S))?' % re.escape(url['url']), '', text)
                 break  # there should only be one
 
     # Expand media links so clients with image previews can show them
