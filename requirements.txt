@@ -1,2 +1,2 @@
-sopel>=7,<8
+sopel>=7,<9
 oauth2<2.0
