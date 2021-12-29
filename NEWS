@@ -1,3 +1,17 @@
+Changes between 0.3.2 and 0.4.0
+===============================
+
+Added:
+* `.twitinfo` command for user lookup (#20)
+* Support for mobile links (#21)
+
+Changed:
+* Updated documentation for configuration (#25) and setup of Twitter API account
+
+Fixed:
+* Media link output when quoted tweets are involved (#24)
+
+
 Changes between 0.3.1 and 0.3.2
 ===============================
 
