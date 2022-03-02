@@ -205,7 +205,11 @@ def output_status(bot, trigger, id_):
                             hearts=tweet['favorite_count'],
                             posted=format_time(bot, trigger, tweet['created_at'])))
 
-    if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
+    if (
+        tweet['is_quote_status']
+        and 'quoted_status' in tweet
+        and bot.config.twitter.show_quoted_tweets
+    ):
         tweet = tweet['quoted_status']
         bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
                                 RTs=tweet['retweet_count'],
