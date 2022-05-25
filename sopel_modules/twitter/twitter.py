@@ -8,7 +8,12 @@ import re
 import oauth2 as oauth
 
 from sopel import module, tools
-from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
+from sopel.config.types import (
+    BooleanAttribute,
+    StaticSection,
+    ValidatedAttribute,
+    NO_DEFAULT,
+)
 from sopel.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,7 +22,7 @@ logger = get_logger(__name__)
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
-    show_quoted_tweets = ValidatedAttribute('show_quoted_tweets', bool, default=True)
+    show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
 
 
 def configure(config):
