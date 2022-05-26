@@ -7,7 +7,7 @@ import re
 
 import oauth2 as oauth
 
-from sopel import module, tools
+from sopel import plugin, tools
 from sopel.config.types import (
     BooleanAttribute,
     StaticSection,
@@ -149,8 +149,8 @@ def format_time(bot, trigger, stamp):
         bot.db, bot.config, tz, trigger.nick, trigger.sender, parsed)
 
 
-@module.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/(?P<user>\w+)(?:/status/(?P<status>\d+))?')
-@module.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/i/web/status/(?P<status>\d+).*')
+@plugin.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/(?P<user>\w+)(?:/status/(?P<status>\d+))?')
+@plugin.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/i/web/status/(?P<status>\d+).*')
 def get_url(bot, trigger, match):
     things = match.groupdict()
     user = things.get('user', None)
@@ -166,12 +166,12 @@ def get_url(bot, trigger, match):
         return
 
 
-@module.commands('twitinfo')
-@module.example('.twitinfo SopelIRC')
+@plugin.commands('twitinfo')
+@plugin.example('.twitinfo SopelIRC')
 def user_command(bot, trigger):
     if not trigger.group(3):
         bot.reply("What user do you want me to look up?")
-        return module.NOLIMIT
+        return plugin.NOLIMIT
 
     output_user(bot, trigger, trigger.group(3))
 
