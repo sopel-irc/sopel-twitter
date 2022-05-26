@@ -10,6 +10,7 @@ import oauth2 as oauth
 from sopel import plugin, tools
 from sopel.config.types import (
     BooleanAttribute,
+    ListAttribute,
     StaticSection,
     ValidatedAttribute,
     NO_DEFAULT,
@@ -19,12 +20,18 @@ from sopel.logger import get_logger
 logger = get_logger(__name__)
 
 DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?twitter\.com/"
+STATUS_REGEX = r"(?:\w+|i/web)/status/(?P<status>\d+)"
+USER_REGEX = r"(?P<user>\w+)/?(?:\?.*)?$"
 
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
     consumer_secret = ValidatedAttribute('consumer_secret', default=NO_DEFAULT)
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
+    alternate_domains = ListAttribute(
+        "alternate_domains",
+        default=["vxtwitter.com", "nitter.net"],
+    )
 
 
 def configure(config):
@@ -151,12 +158,37 @@ def format_time(bot, trigger, stamp):
         bot.db, bot.config, tz, trigger.nick, trigger.sender, parsed)
 
 
-@plugin.url(DOMAIN_REGEX + r"(?:\w+|i/web)/status/(?P<status>\d+)")
+def _twitter_alt_domains(path_regex):
+    """Build a url_lazy loader for the specified callback type.
+
+    :param str path_regex: The path to be appended to each domain regex
+    :return: A loader to be called by url_lazy()
+    :rtype: Callable[[Config], List[re.Pattern]]
+    """
+    def loader(settings):
+        """Lazy loader for configured alt domains
+
+        :param settings: bot.config
+        :type settings: :class:`~sopel.config.Config`
+        :return: A list of compiled regexes
+        :rtype: List[re.Pattern]
+        """
+        return [
+            re.compile(r"https?://{}/{}".format(domain, path_regex))
+            for domain in settings.twitter.alternate_domains
+        ]
+
+    return loader
+
+
+@plugin.url_lazy(_twitter_alt_domains(STATUS_REGEX))
+@plugin.url(DOMAIN_REGEX + STATUS_REGEX)
 def url_status(bot, trigger):
     output_status(bot, trigger, trigger.group("status"))
 
 
-@plugin.url(DOMAIN_REGEX + r"(?P<user>\w+)/?(?:\?.*)?$")
+@plugin.url_lazy(_twitter_alt_domains(USER_REGEX))
+@plugin.url(DOMAIN_REGEX + USER_REGEX)
 def url_user(bot, trigger):
     output_user(bot, trigger, trigger.group("user"))
 
