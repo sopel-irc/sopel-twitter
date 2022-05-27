@@ -18,6 +18,8 @@ from sopel.logger import get_logger
 
 logger = get_logger(__name__)
 
+DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?twitter\.com/"
+
 
 class TwitterSection(StaticSection):
     consumer_key = ValidatedAttribute('consumer_key', default=NO_DEFAULT)
@@ -149,21 +151,14 @@ def format_time(bot, trigger, stamp):
         bot.db, bot.config, tz, trigger.nick, trigger.sender, parsed)
 
 
-@plugin.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/(?P<user>\w+)(?:/status/(?P<status>\d+))?')
-@plugin.url(r'https?://(?:m(?:obile)?\.)?twitter\.com/i/web/status/(?P<status>\d+).*')
-def get_url(bot, trigger, match):
-    things = match.groupdict()
-    user = things.get('user', None)
-    status = things.get('status', None)
+@plugin.url(DOMAIN_REGEX + r"(?:\w+|i/web)/status/(?P<status>\d+)")
+def url_status(bot, trigger):
+    output_status(bot, trigger, trigger.group("status"))
 
-    if status:
-        output_status(bot, trigger, status)
-    elif user:
-        output_user(bot, trigger, user)
-    else:
-        # don't know how to handle this link; silently fail
-        # explicit is better than implicit
-        return
+
+@plugin.url(DOMAIN_REGEX + r"(?P<user>\w+)/?(?:\?.*)?$")
+def url_user(bot, trigger):
+    output_user(bot, trigger, trigger.group("user"))
 
 
 @plugin.commands('twitinfo')
