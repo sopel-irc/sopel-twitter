@@ -6,7 +6,7 @@ import re
 
 import requests
 
-from sopel import module, tools
+from sopel import module, plugin, tools
 from sopel.config.types import StaticSection, ValidatedAttribute, NO_DEFAULT
 from sopel.logger import get_logger
 
@@ -51,35 +51,25 @@ def get_preferred_media_item_link(item):
     thumbnail, so we need to apply a little guesswork to figure out if we can
     output a video clip instead of a static image.
 
-    TODO: Not updated for API v2 yet!
+    TODO: Not updated for API v2 yet! Currently just returns the `media.url`,
+    which may be only a video thumbnail.
     """
-    video_info = item.get('video_info', {})
-    variants = video_info.get('variants', [])
-
-    if not (video_info and variants):
-        # static image, or unknown other rich media item; return static image
-        return item['media_url_https']
-
-    # if we've reached this point, it's probably "real" rich media
-    if len(variants) > 1:
-        # ugh, Twitter returns unsorted data
-        variants.sort(key=lambda k: k.get('bitrate', 0))
-
-    return variants[-1]['url']
+    return item['url']
 
 
-def format_tweet(tweet):
+def format_tweet(tweet, includes):
     """
     Format a tweet object for display.
 
     :param tweet: the tweet object, as decoded JSON
-    :return: the formatted tweet, and formatted quoted tweet if it exists
-    :rtype: tuple
+    :param includes: the tweet's includes, which Twitter API v2 separated from the tweet data
+    :return: the formatted tweet
+    :rtype: str
     """
-    text = tweet['text'].replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
+    text = tweet['text']
     urls = tweet.get('entities', {}).get('urls', [])
-    media = tweet.get('entities', {}).get('media', [])
-    quoted_ids = [t['id'] for t in tweet['referenced_tweets'] if t['type'] == 'quoted']
+    media = includes.get('media', [])
+    quoted_ids = [t['id'] for t in tweet.get('referenced_tweets', []) if t['type'] == 'quoted']
 
     # Remove link to quoted status itself, if it's present
     if quoted_ids:
@@ -88,10 +78,16 @@ def format_tweet(tweet):
                 text = re.sub('\\s*{url}\\s*'.format(url=re.escape(url['url'])), '', text)
                 break  # there should only be one
 
+    # Expand links to full URLs
+    for url in urls:
+        # Insert media key for media links, to be replaced again by media URL later
+        replacement = url.get('media_key', url['expanded_url'])
+        text = text.replace(url['url'], replacement)
+
     # Expand media links so clients with image previews can show them
     for item in media:
         url = get_preferred_media_item_link(item)
-        replaced = text.replace(item['url'], url)
+        replaced = text.replace(item['media_key'], url)
         if replaced == text:
             # Twitter only puts the first media item's URL in the tweet body
             # We have to append the others ourselves
@@ -99,13 +95,14 @@ def format_tweet(tweet):
         else:
             text = replaced
 
-    # Expand other links to full URLs
-    for url in urls:
-        text = text.replace(url['url'], url['expanded_url'])
+    # Strip excess trailing whitespace (from removal of inline URLs etc.)
+    text = text.rstrip()
+
+    # Unicode symbol to indicate line breaks
+    text = text.replace("\n", " \u23CE ")
 
     # Done! At least, until Twitter adds more entity types...
-    u = tweet['user']
-    return u['name'] + ' (@' + u['username'] + '): ' + tools.web.decode(text)
+    return tools.web.decode(text)
 
 
 def format_time(bot, trigger, stamp):
@@ -118,7 +115,7 @@ def format_time(bot, trigger, stamp):
     :return: the formatted publish timestamp of the ``tweet``
     :rtype: str
     """
-    parsed = datetime.strptime(stamp, '%a %b %d %H:%M:%S %z %Y')
+    parsed = datetime.strptime(stamp, '%Y-%m-%dT%H:%M:%S.%fZ')
     tz = tools.time.get_timezone(
         bot.db, bot.config, None, trigger.nick, trigger.sender)
     return tools.time.format_time(
@@ -127,6 +124,7 @@ def format_time(bot, trigger, stamp):
 
 @module.url(r'https?://twitter\.com/(?P<user>[^/]+)(?:$|/status/(?P<status>\d+)).*')
 @module.url(r'https?://twitter\.com/i/web/status/(?P<status>\d+).*')
+@plugin.output_prefix('[Twitter] ')
 def get_url(bot, trigger, match):
     things = match.groupdict()
     user = things.get('user', None)
@@ -146,7 +144,7 @@ def output_status(bot, trigger, id_):
     params = {
         'tweet.fields': 'attachments,created_at,entities,public_metrics,referenced_tweets,text',
         'user.fields': 'created_at,name,username,verified',
-        'media.fields': 'type,url',  # 'url' is undocumented as of 2020-12-16, only works for some types
+        'media.fields': 'type,url,preview_image_url',
         'expansions': 'attachments.media_keys,author_id,referenced_tweets.id,referenced_tweets.id.author_id',
     }
     response = requests.get(
@@ -159,20 +157,20 @@ def output_status(bot, trigger, id_):
                      response.status_code, id_)
 
     try:
-        tweet = response.json()
+        r = response.json()
     except ValueError:
         logger.error('Twitter API responded with non-JSON payload: %s', response.text)
         bot.reply('Twitter API responded with non-JSON payload. See my logs for details.')
         return
 
     try:
-        tweet = tweet['data']
+        tweet = r['data']
     except KeyError:
-        if tweet.get('errors', []):
+        if r.get('errors', []):
             # Successful request, but something wrong (e.g. deleted tweet)
             msg = "Twitter returned an error"
             try:
-                error = tweet['errors'][0]
+                error = r['errors'][0]
             except IndexError:
                 error = {}
             try:
@@ -188,10 +186,10 @@ def output_status(bot, trigger, id_):
             return
 
         # Likely a problem with API client configuration on developer site
-        err_title = tweet.get('title', None)
-        err_type = tweet.get('type', None)
-        err_reason = tweet.get('reason', None)
-        err_detail = tweet.get('detail', None)
+        err_title = r.get('title', None)
+        err_type = r.get('type', None)
+        err_reason = r.get('reason', None)
+        err_detail = r.get('detail', None)
 
         msg = 'Twitter error: {}. See my logs for details.'.format(
             err_title or '<unknown error>',
@@ -200,7 +198,7 @@ def output_status(bot, trigger, id_):
         logger.error(
             'Twitter returned %d "%s" while fetching Tweet ID %s',
             response.status_code,
-            tweet.get('title'),
+            r.get('title'),
             id_,
         )
         if err_type:
@@ -211,19 +209,45 @@ def output_status(bot, trigger, id_):
             logger.error("Error detail: %s", err_detail)
         return
 
-    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
+    author = [user for user in r['includes']['users'] if user['id'] == tweet['author_id']][0]
 
-    bot.say(template.format(tweet=format_tweet(tweet),
-                            RTs=tweet['retweet_count'],
-                            hearts=tweet['favorite_count'],
-                            posted=format_time(bot, trigger, tweet['created_at'])))
+    bot.say(
+        '{displayname} (@{username}): {tweet}'.format(
+            displayname=author['name'],
+            username=author['username'],
+            tweet=format_tweet(tweet, r.get('includes', {})),
+        ),
+        truncation=' […]',
+        trailing=' | {RTs} RTs | {hearts} ♥s | Posted: {posted}'.format(
+            RTs=tweet['public_metrics']['retweet_count'],
+            hearts=tweet['public_metrics']['like_count'],
+            posted=format_time(bot, trigger, tweet['created_at']),
+        )
+    )
 
-    if tweet['is_quote_status'] and bot.config.twitter.show_quoted_tweets:
-        tweet = tweet['quoted_status']
-        bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
-                                RTs=tweet['retweet_count'],
-                                hearts=tweet['favorite_count'],
-                                posted=format_time(bot, trigger, tweet['created_at'])))
+    try:
+        quoted_id = tweet.get('referenced_tweets', [])[0]['id']
+    except IndexError:
+        # no referenced/quoted tweets
+        return
+
+    if quoted_id and bot.config.twitter.show_quoted_tweets:
+        tweet = r['includes']['tweets'][0]
+        author = [user for user in r['includes']['users'] if user['id'] == tweet['author_id']][0]
+
+        bot.say(
+            'Quoting {displayname} (@{username}): {tweet}'.format(
+                displayname=author['name'],
+                username=author['username'],
+                tweet=format_tweet(tweet, r.get('includes', {})),
+            ),
+            truncation=' […]',
+            trailing=' | {RTs} RTs | {hearts} ♥s | Posted: {posted}'.format(
+                RTs=tweet['public_metrics']['retweet_count'],
+                hearts=tweet['public_metrics']['like_count'],
+                posted=format_time(bot, trigger, tweet['created_at']),
+            )
+        )
 
 
 def output_user(bot, trigger, sn):
@@ -257,7 +281,7 @@ def output_user(bot, trigger, sn):
     else:
         url = ''
 
-    joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
+    joined = datetime.strptime(user['created_at'], '%Y-%m-%dT%H:%M:%S.%fZ')
     tz = tools.time.get_timezone(
         bot.db, bot.config, None, trigger.nick, trigger.sender)
     joined = tools.time.format_time(
@@ -269,7 +293,7 @@ def output_user(bot, trigger, sn):
             bio = bio.replace(link['url'], link['expanded_url'])
         bio = tools.web.decode(bio)
 
-    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
+    message = ('{user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
                ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
                ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s'
                ' | Joined: {joined}{bio}').format(
