@@ -86,6 +86,9 @@ def get_preferred_media_item_link(item):
 
     if not (video_info and variants):
         # static image, or unknown other rich media item; return static image
+        if item['type'] == 'photo':
+            if 'large' in item.get('sizes', {}):
+                return item['media_url_https'] + ':large'
         return item['media_url_https']
 
     # if we've reached this point, it's probably "real" rich media
