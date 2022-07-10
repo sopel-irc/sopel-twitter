@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?twitter\.com/"
 STATUS_REGEX = r"(?:\w+|i/web)/status/(?P<status>\d+)"
 USER_REGEX = r"(?P<user>\w+)/?(?:\?.*)?$"
+NEWLINE_RUN_REGEX = re.compile(r"\s*\n[\n\s]*")
 
 
 class TwitterSection(StaticSection):
@@ -107,6 +108,7 @@ def format_tweet(tweet):
         text = tweet['full_text']
     except KeyError:
         text = tweet['text']
+    text = NEWLINE_RUN_REGEX.sub("\n", text)
     text = text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
     urls = tweet['entities']['urls']
     media = get_extended_media(tweet)
