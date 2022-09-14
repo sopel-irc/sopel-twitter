@@ -42,6 +42,12 @@ consumer_secret = YOUR_API_SECRET_HERE
 # Optional: For quote-tweets, send a second message showing the quoted tweet?
 # Default: True
 show_quoted_tweets = True
+# Optional: What other domains should we treat like twitter domains?
+# Default: vxtwitter.com, nitter.net
+alternate_domains =
+    fxtwitter.com
+    vxtwitter.com
+    nitter.net
 ```
 
 ## Usage
