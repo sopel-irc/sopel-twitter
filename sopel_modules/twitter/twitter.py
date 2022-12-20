@@ -15,9 +15,8 @@ from sopel.config.types import (
     ValidatedAttribute,
     NO_DEFAULT,
 )
-from sopel.logger import get_logger
 
-logger = get_logger(__name__)
+logger = tools.get_logger('twitter')
 
 DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?twitter\.com/"
 STATUS_REGEX = r"(?:\w+|i/web)/status/(?P<status>\d+)"
