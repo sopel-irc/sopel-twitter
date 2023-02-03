@@ -21,7 +21,7 @@ sopel-twitter. You'll need the API Key (`consumer_key`) and Secret
 Releases are hosted on PyPI, so after installing Sopel, all you need is `pip`:
 
 ```bash
-$ pip install sopel-modules.twitter
+$ pip install sopel-twitter
 ```
 
 If you want to use the development version, simply clone the repository and use
