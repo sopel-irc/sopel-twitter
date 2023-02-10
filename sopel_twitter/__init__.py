@@ -1,4 +1,8 @@
 # coding=utf-8
+"""sopel-twitter
+
+A Twitter plugin for Sopel
+"""
 from __future__ import unicode_literals, absolute_import, division, print_function
 
 from datetime import datetime
