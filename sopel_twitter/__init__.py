@@ -47,6 +47,33 @@ def setup(bot):
     bot.memory['tweety_app'] = Twitter()
 
 
+def get_preferred_media_item_link(item):
+    """
+    Guess the most useful link for a given piece of embedded media.
+
+    :param item: a single Media object from Tweety
+    :return: the best-guess link to output for optimum IRC user utility
+    :rtype: str
+
+    Twitter puts just a thumbnail for the media link if it's animated/video.
+    Ideally we'd like clients that support it to show inline video, not a
+    thumbnail, so we need to apply a little guesswork to figure out if we can
+    output a video clip instead of a static image.
+    """
+    variants = item.get('streams', [])
+
+    if not variants:
+        # static image, or unknown other rich media item; return static image
+        return item['media_url_https']
+
+    # if we've reached this point, it's probably "real" rich media
+    if len(variants) > 1:
+        # ugh, Twitter returns unsorted data
+        variants.sort(key=lambda k: k.get('bitrate', 0))
+
+    return variants[-1]['url']
+
+
 def format_tweet(tweet):
     """
     Format a tweet object for display.
@@ -72,7 +99,7 @@ def format_tweet(tweet):
 
     # Expand media links so clients with image previews can show them
     for item in media:
-        url = item.media_url_https
+        url = get_preferred_media_item_link(item)
         replaced = text.replace(item.url, url)
         if replaced == text:
             # Twitter only puts the first media item's URL in the tweet body
