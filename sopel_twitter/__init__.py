@@ -173,47 +173,15 @@ def output_status(bot, trigger, id_):
 
 
 def output_user(bot, trigger, sn):
-    # early return; not implemented yet w/Tweety
-    return
+    user = Twitter(sn).get_user_info()
 
-    client = get_client(bot)
-    response, content = client.request(
-        'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
-    if response['status'] != '200':
-        logger.error('%s error reaching the twitter API for screen name %s',
-                     response['status'], sn)
+    url = None
+    try:
+        url = user.entities['url']['urls'][0]['expanded_url']
+    except (KeyError, IndexError):
+        pass
 
-    user = json.loads(content.decode('utf-8'))
-    if user.get('errors', []):
-        msg = "Twitter returned an error"
-        try:
-            error = user['errors'][0]
-        except IndexError:
-            error = {}
-        try:
-            msg = msg + ': ' + error['message']
-            if msg[-1] != '.':
-                msg = msg + '.'  # some texts end with a period, but not all... thanks, Twitter
-        except KeyError:
-            msg = msg + '. :( Maybe that user doesn\'t exist?'
-        bot.say(msg)
-        logger.debug('Screen name {sn} returned error code {code}: "{message}"'
-            .format(sn=sn, code=error.get('code', '-1'),
-                message=error.get('message', '(unknown description)')))
-        return
-
-    if user.get('url', None):
-        url = user['entities']['url']['urls'][0]['expanded_url']  # Twitter c'mon, this is absurd
-    else:
-        url = ''
-
-    joined = datetime.strptime(user['created_at'], '%a %b %d %H:%M:%S %z %Y')
-    tz = tools.time.get_timezone(
-        bot.db, bot.config, None, trigger.nick, trigger.sender)
-    joined = tools.time.format_time(
-        bot.db, bot.config, tz, trigger.nick, trigger.sender, joined)
-
-    bio = user.get('description', '')
+    bio = user.get('description', None)
     if bio:
         for link in user['entities']['description']['urls']:  # bloody t.co everywhere
             bio = bio.replace(link['url'], link['expanded_url'])
