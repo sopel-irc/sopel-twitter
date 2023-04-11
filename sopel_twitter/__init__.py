@@ -60,10 +60,9 @@ def format_tweet(tweet):
     media = tweet.media
 
     # Remove link to quoted status itself, if it's present
-    # TODO: not yet functional in Tweety rewrite
     if tweet.is_quoted:
         for url in urls:
-            if url['expanded_url'].rsplit('/', 1)[1] == tweet['quoted_status_id_str']:
+            if url['expanded_url'].rsplit('/', 1)[1] == tweet.quoted_tweet.id:
                 # this regex matches zero-or-more whitespace behind the link, but
                 # whitespace after the link only matches if it's trailing (that is,
                 # not followed by more non-whitespace characters).
@@ -161,22 +160,22 @@ def output_status(bot, trigger, id_):
                             hearts=tweet.likes,
                             posted=format_time(bot, trigger, tweet.created_on)))
 
-    # TEMPORARY early return until quoted tweet logic is worked out
-    return
-
     if (
-        tweet['is_quote_status']
-        and 'quoted_status' in tweet
-        and bot.config.twitter.show_quoted_tweets
+        bot.config.twitter.show_quoted_tweets
+        and tweet.is_quoted
+        and tweet.quoted_tweet is not None
     ):
-        tweet = tweet['quoted_status']
+        tweet = tweet.quoted_tweet
         bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
-                                RTs=tweet['retweet_count'],
-                                hearts=tweet['favorite_count'],
-                                posted=format_time(bot, trigger, tweet['created_at'])))
+                                RTs=tweet.retweet_counts,
+                                hearts=tweet.likes,
+                                posted=format_time(bot, trigger, tweet.created_on)))
 
 
 def output_user(bot, trigger, sn):
+    # early return; not implemented yet w/Tweety
+    return
+
     client = get_client(bot)
     response, content = client.request(
         'https://api.twitter.com/1.1/users/show.json?screen_name={}'.format(sn))
