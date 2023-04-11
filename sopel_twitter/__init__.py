@@ -225,9 +225,4 @@ def output_user(bot, trigger, sn):
                joined=format_time(bot, trigger, user['created_at']),
                bio=(' | ' + bio if bio else ''))
 
-    # It's unlikely to happen, but theoretically we *might* need to truncate the message if enough
-    # of the field values are ridiculously long. Best to be safe.
-    message, excess = tools.get_sendable_message(message)
-    if excess:
-        message += ' […]'
-    bot.say(message)
+    bot.say(message, truncation=' […]')
