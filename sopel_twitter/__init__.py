@@ -10,6 +10,7 @@ import json
 import re
 
 from tweety.bot import Twitter
+from tweety import exceptions_ as tweety_errors
 
 from sopel import plugin, tools
 from sopel.config.types import (
@@ -151,7 +152,18 @@ def user_command(bot, trigger):
 
 
 def output_status(bot, trigger, id_):
-    tweet = bot.memory['tweety_app'].tweet_detail(id_)
+    try:
+        tweet = bot.memory['tweety_app'].tweet_detail(id_)
+    except tweety_errors.InvalidTweetIdentifier:
+        bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
+        return
+    except (
+        tweety_errors.GuestTokenNotFound,
+        tweety_errors.ProxyParseError,
+        tweety_errors.UnknownError,
+    ):
+        bot.say("Can't access Twitter data. Please try again later.")
+        return
 
     template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
 
@@ -173,7 +185,21 @@ def output_status(bot, trigger, id_):
 
 
 def output_user(bot, trigger, sn):
-    user = Twitter(sn).get_user_info()
+    try:
+        user = Twitter(sn).get_user_info()
+    except tweety_errors.UserNotFound:
+        bot.say("User not found.")
+        return
+    except tweety_errors.UserProtected:
+        bot.say("User profile is protected.")
+        return
+    except (
+        tweety_errors.GuestTokenNotFound,
+        tweety_errors.ProxyParseError,
+        tweety_errors.UnknownError,
+    ):
+        bot.say("Can't access Twitter data. Please try again later.")
+        return
 
     url = None
     try:
