@@ -2,20 +2,6 @@
 
 A Twitter plugin for [Sopel](https://sopel.chat/).
 
-## Getting your API credentials
-
-Twitter's [developer application
-process](https://developer.twitter.com/en/docs/twitter-api/getting-started/getting-access-to-the-twitter-api)
-has become rather tedious and annoying, involving a game of 20 questions with
-manual verification and sometimes long wait times. Unfortunately you'll need
-to go through it in order to use this plugin, since the API is needed to
-retrieve account data and rich link previews.
-
-Once you have a Twitter developer account, you can [create an
-app](https://developer.twitter.com/en/portal/apps/new) for your instance of
-sopel-twitter. You'll need the API Key (`consumer_key`) and Secret
-(`consumer_secret`) for your bot configuration.
-
 ## Installation
 
 Releases are hosted on PyPI, so after installing Sopel, all you need is `pip`:
@@ -37,17 +23,16 @@ Otherwise, you can edit your bot's configuration file:
 
 ```ini
 [twitter]
-consumer_key = YOUR_API_KEY_HERE
-consumer_secret = YOUR_API_SECRET_HERE
+show_quoted_tweets = True
 # Optional: For quote-tweets, send a second message showing the quoted tweet?
 # Default: True
-show_quoted_tweets = True
-# Optional: What other domains should we treat like twitter domains?
-# Default: vxtwitter.com, nitter.net
+
 alternate_domains =
     fxtwitter.com
     vxtwitter.com
     nitter.net
+# Optional: What other domains should we treat like twitter domains?
+# Default: vxtwitter.com, nitter.net
 ```
 
 ## Usage
