@@ -1,3 +1,24 @@
+Changes between 0.4.1 and 1.0.0
+===============================
+
+**Important: Package name is now `sopel-twitter`**
+
+Added:
+* Option to specify additional domains that can be treated as Twitter links (#34, #37)
+
+Changed:
+* Use `BooleanAttribute` setting type where appropriate (#27)
+* Use future-proof `plugin` decorators (#30)
+* Migrate from namespace package to entry point (#41)
+* Migrate to Tweety library for data access; no more API keys (#42)
+* Minimum Sopel version raised to 7.1 (#27)
+
+Fixed:
+* `/i/web/status` links (#33)
+* Collapse consecutive newlines (#36)
+* Properly set up logger (#38)
+
+
 Changes between 0.4.0 and 0.4.1
 ===============================
 
