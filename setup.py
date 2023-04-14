@@ -21,13 +21,10 @@ with open('NEWS') as history_file:
 with open('requirements.txt') as requirements_file:
     requirements = [req for req in requirements_file.readlines()]
 
-with open('dev-requirements.txt') as dev_requirements_file:
-    dev_requirements = [req for req in dev_requirements_file.readlines()]
-
 
 setup(
     name='sopel_modules.twitter',
-    version='0.4.1',
+    version='1.0.0',
     description='A Twitter plugin for Sopel',
     long_description=readme + '\n\n' + history,
     long_description_content_type='text/markdown',
@@ -38,7 +35,5 @@ setup(
     namespace_packages=['sopel_modules'],
     include_package_data=True,
     install_requires=requirements,
-    tests_require=dev_requirements,
-    test_suite='tests',
     license='Eiffel Forum License, version 2',
 )
