@@ -42,9 +42,25 @@ def configure(config):
         'show the quoted tweet on a second IRC line?')
 
 
+def _cache_tweety_instance(bot):
+    try:
+        bot.memory['tweety_app'] = Twitter()
+    except (
+        tweety_errors.GuestTokenNotFound,
+        tweety_errors.ProxyParseError,
+    ):
+        raise RuntimeError("Couldn't create Tweety instance.")
+
+
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
-    bot.memory['tweety_app'] = Twitter()
+    bot.memory['tweety_app'] = None
+
+    try:
+        _cache_tweety_instance(bot)
+    except RuntimeError:
+        # try again later
+        pass
 
 
 def shutdown(bot):
@@ -186,25 +202,30 @@ def user_command(bot, trigger):
 
 
 def output_status(bot, trigger, id_):
+    if bot.memory['tweety_app'] is None:
+        try:
+            _cache_tweety_instance(bot)
+        except RuntimeError:
+            bot.say("Can't access Twitter data. Please try again later.")
+            return
+
     for retried in range(2):
         try:
             tweet = bot.memory['tweety_app'].tweet_detail(id_)
         except tweety_errors.InvalidTweetIdentifier:
             if not retried:
                 # try a fresh instance
-                bot.memory['tweety_app'] = Twitter()
-                continue
+                try:
+                    _cache_tweety_instance(bot)
+                except RuntimeError:
+                    bot.say("Can't access Twitter data. Please try again later.")
+                    return
+                else:
+                    continue
             else:
                 # still fails? probably unfetchable
                 bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
                 return
-        except (
-            tweety_errors.GuestTokenNotFound,
-            tweety_errors.ProxyParseError,
-            tweety_errors.UnknownError,
-        ):
-            bot.say("Can't access Twitter data. Please try again later.")
-            return
         else:
             break
 
@@ -239,7 +260,6 @@ def output_user(bot, trigger, sn):
     except (
         tweety_errors.GuestTokenNotFound,
         tweety_errors.ProxyParseError,
-        tweety_errors.UnknownError,
     ):
         bot.say("Can't access Twitter data. Please try again later.")
         return
