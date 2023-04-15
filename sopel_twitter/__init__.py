@@ -44,6 +44,14 @@ def configure(config):
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
+    bot.memory['tweety_app'] = Twitter()
+
+
+def shutdown(bot):
+    try:
+        del bot.memory['tweety_app']
+    except KeyError:
+        pass
 
 
 def get_preferred_media_item_link(item):
@@ -178,18 +186,27 @@ def user_command(bot, trigger):
 
 
 def output_status(bot, trigger, id_):
-    try:
-        tweet = Twitter().tweet_detail(id_)
-    except tweety_errors.InvalidTweetIdentifier:
-        bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
-        return
-    except (
-        tweety_errors.GuestTokenNotFound,
-        tweety_errors.ProxyParseError,
-        tweety_errors.UnknownError,
-    ):
-        bot.say("Can't access Twitter data. Please try again later.")
-        return
+    for retried in range(2):
+        try:
+            tweet = bot.memory['tweety_app'].tweet_detail(id_)
+        except tweety_errors.InvalidTweetIdentifier:
+            if not retried:
+                # try a fresh instance
+                bot.memory['tweety_app'] = Twitter()
+                continue
+            else:
+                # still fails? probably unfetchable
+                bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
+                return
+        except (
+            tweety_errors.GuestTokenNotFound,
+            tweety_errors.ProxyParseError,
+            tweety_errors.UnknownError,
+        ):
+            bot.say("Can't access Twitter data. Please try again later.")
+            return
+        else:
+            break
 
     template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
 
