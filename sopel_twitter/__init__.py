@@ -44,7 +44,6 @@ def configure(config):
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
-    bot.memory['tweety_app'] = Twitter()
 
 
 def get_preferred_media_item_link(item):
@@ -180,7 +179,7 @@ def user_command(bot, trigger):
 
 def output_status(bot, trigger, id_):
     try:
-        tweet = bot.memory['tweety_app'].tweet_detail(id_)
+        tweet = Twitter().tweet_detail(id_)
     except tweety_errors.InvalidTweetIdentifier:
         bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
         return
