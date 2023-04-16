@@ -1,3 +1,10 @@
+Changes between 1.0.0 and 1.0.1
+===============================
+
+Fixed:
+* Don't cache Tweety object; it stops working after some hours (#43)
+
+
 Changes between 0.4.1 and 1.0.0
 ===============================
 
