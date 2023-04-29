@@ -24,7 +24,7 @@ with open('requirements.txt') as requirements_file:
 
 setup(
     name='sopel_modules.twitter',
-    version='1.0.0',
+    version='1.0.1',
     description='A Twitter plugin for Sopel',
     long_description=readme + '\n\n' + history,
     long_description_content_type='text/markdown',
