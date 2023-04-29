@@ -1,1 +1,1 @@
-sopel-twitter==1.0.0
+sopel-twitter
