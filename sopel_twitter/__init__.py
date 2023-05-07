@@ -181,7 +181,7 @@ def output_status(bot, trigger, id_):
     try:
         tweet = Twitter().tweet_detail(id_)
     except tweety_errors.InvalidTweetIdentifier:
-        bot.say("Couldn't fetch that tweet. Most likely, it's either private or deleted.")
+        bot.say("Couldn't fetch that tweet. It's probably private, 18+ flagged, or deleted.")
         return
     except (
         tweety_errors.GuestTokenNotFound,
