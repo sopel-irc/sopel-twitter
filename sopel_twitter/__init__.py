@@ -180,11 +180,15 @@ def user_command(bot, trigger):
 def output_status(bot, trigger, id_):
     try:
         tweet = Twitter().tweet_detail(id_)
+    except tweety_errors.AuthenticationRequired:
+        bot.say("That content requires authentication; sorry!")
+        return
     except tweety_errors.InvalidTweetIdentifier:
         bot.say("Couldn't fetch that tweet. It's probably private, 18+ flagged, or deleted.")
         return
     except (
         tweety_errors.GuestTokenNotFound,
+        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
@@ -212,15 +216,19 @@ def output_status(bot, trigger, id_):
 
 def output_user(bot, trigger, sn):
     try:
-        user = Twitter(sn).get_user_info()
+        user = Twitter().get_user_info(sn)
     except tweety_errors.UserNotFound:
         bot.say("User not found.")
         return
     except tweety_errors.UserProtected:
         bot.say("User profile is protected.")
         return
+    except tweety_errors.AuthenticationRequired:
+        bot.say("That content requires authentication; sorry!")
+        return
     except (
         tweety_errors.GuestTokenNotFound,
+        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
