@@ -241,22 +241,22 @@ def output_user(bot, trigger, sn):
     except (KeyError, IndexError):
         pass
 
-    bio = user.get('description', None)
+    bio = getattr(user, 'description', None)
     if bio:
-        for link in user['entities']['description']['urls']:  # bloody t.co everywhere
+        for link in user.entities['description']['urls']:  # bloody t.co everywhere
             bio = bio.replace(link['url'], link['expanded_url'])
         bio = tools.web.decode(bio)
 
-    message = ('[Twitter] {user[name]} (@{user[screen_name]}){verified}{protected}{location}{url}'
-               ' | {user[friends_count]:,} friends, {user[followers_count]:,} followers'
-               ' | {user[statuses_count]:,} tweets, {user[favourites_count]:,} ♥s'
+    message = ('[Twitter] {user.name} (@{user.screen_name}){verified}{protected}{location}{url}'
+               ' | {user.friends_count:,} friends, {user.followers_count:,} followers'
+               ' | {user.statuses_count:,} tweets, {user.favourites_count:,} ♥s'
                ' | Joined: {joined}{bio}').format(
                user=user,
-               verified=(' ✔️' if user['verified'] else ''),
-               protected=(' 🔒' if user['protected'] else ''),
-               location=(' | ' + user['location'] if user.get('location', None) else ''),
+               verified=(' ✔️' if user.verified else ''),
+               protected=(' 🔒' if user.protected else ''),
+               location=(' | ' + user.location if getattr(user, 'location', None) else ''),
                url=(' | ' + url if url else ''),
-               joined=format_time(bot, trigger, user['created_at']),
+               joined=format_time(bot, trigger, user.created_at),
                bio=(' | ' + bio if bio else ''))
 
     bot.say(message, truncation=' […]')
