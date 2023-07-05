@@ -1,3 +1,13 @@
+Changes between 1.1.0 and 1.2.0
+===============================
+
+Breaking:
+* **Twitter cookies are now required**
+
+Changed:
+* Updated to `tweety-ns` 0.8 (#48)
+
+
 Changes between 1.0.1 and 1.1.0
 ===============================
 
