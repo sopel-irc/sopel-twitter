@@ -48,6 +48,56 @@ alternate_domains =
 # Default: fxtwitter.com, vxtwitter.com, nitter.net
 ```
 
+# How to find Your Twitter Authentication Token
+
+Follow these steps to locate your authentication token on Twitter. This token is often needed for using third-party applications with your Twitter account.
+
+**Step 1: Log into Twitter**
+
+Start by opening your preferred web browser on your computer. Navigate to Twitter's website and log into your account.
+
+\```markdown
+1. Open a web browser on your computer.
+2. Go to https://www.twitter.com.
+3. Log in to your Twitter account.
+\```
+
+**Step 2: Open Developer Tools**
+
+Next, open the developer tools in your web browser. You can do this by either right-clicking anywhere on the page and selecting "Inspect", or by using the keyboard shortcut `CTRL + SHIFT + I`.
+
+\```markdown
+1. Right-click anywhere on the page.
+2. Click on "Inspect" from the context menu (or press `CTRL + SHIFT + I`).
+\```
+
+**Step 3: Navigate to the "Application" Tab**
+
+Once the developer tools panel is open, click on the "Application" tab.
+
+\```markdown
+1. In the developer tools panel, click on the "Application" tab.
+\```
+
+**Step 4: Expand the "Cookies" Section**
+
+In the sidebar of the "Application" tab, you'll find a section titled "Storage". Click on the arrow next to "Cookies" to expand it. Then, select `https://twitter.com`.
+
+\```markdown
+1. On the sidebar, locate the "Storage" section.
+2. Click the arrow next to "Cookies" to expand it.
+3. Click on `https://twitter.com`.
+\```
+
+**Step 5: Locate and Copy the "auth_token" Value**
+
+Finally, in the expanded list under `https://twitter.com`, find the name "auth_token". The value associated with "auth_token" is what you need. Right-click it and select "Copy".
+
+\```markdown
+1. In the expanded list under `https://twitter.com`, find the name "auth_token".
+2. Right-click on the value of "auth_token" and select "Copy".
+\```
+
 ## Usage
 
 Just send a link to a tweet or profile!
