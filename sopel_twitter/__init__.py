@@ -9,8 +9,7 @@ from datetime import datetime
 import json
 import re
 
-from tweety.bot import Twitter
-from tweety import exceptions_ as tweety_errors
+from tweety import Twitter, exceptions_ as tweety_errors
 
 from sopel import plugin, tools
 from sopel.config.types import (
@@ -30,7 +29,6 @@ NEWLINE_RUN_REGEX = re.compile(r"\s*\n[\n\s]*")
 
 
 class TwitterSection(StaticSection):
-    cookies = ValidatedAttribute('cookies', default=NO_DEFAULT)
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
     alternate_domains = ListAttribute(
         "alternate_domains",
@@ -40,9 +38,6 @@ class TwitterSection(StaticSection):
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
-    tok = input('REQUIRED: Twitter auth_token cookie value: ')
-    ct0 = input('REQUIRED: Twitter ct0 cookie value: ')
-    config.twitter.cookies = 'auth_token={};ct0={}'.format(tok, ct0)
     config.twitter.configure_setting(
         'show_quoted_tweets', 'When a tweet quotes another status, '
         'show the quoted tweet on a second IRC line?')
@@ -185,7 +180,7 @@ def user_command(bot, trigger):
 
 def output_status(bot, trigger, id_):
     try:
-        tweet = Twitter(cookies=bot.settings.twitter.cookies).tweet_detail(id_)
+        tweet = Twitter("sopel-twitter").tweet_detail(id_)
     except tweety_errors.InvalidCredentials:
         bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
         return
@@ -228,7 +223,7 @@ def output_status(bot, trigger, id_):
 
 def output_user(bot, trigger, sn):
     try:
-        user = Twitter(cookies=bot.settings.twitter.cookies).get_user_info(sn)
+        user = Twitter("sopel-twitter").get_user_info(sn)
     except tweety_errors.InvalidCredentials:
         bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
         return
