@@ -182,7 +182,7 @@ def output_status(bot, trigger, id_):
     try:
         tweet = Twitter("sopel-twitter").tweet_detail(id_)
     except tweety_errors.InvalidCredentials:
-        bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
+        bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
     except tweety_errors.AuthenticationRequired:
         bot.say("That content requires authentication; sorry!")
@@ -195,7 +195,6 @@ def output_status(bot, trigger, id_):
         return
     except (
         tweety_errors.GuestTokenNotFound,
-        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
@@ -225,7 +224,7 @@ def output_user(bot, trigger, sn):
     try:
         user = Twitter("sopel-twitter").get_user_info(sn)
     except tweety_errors.InvalidCredentials:
-        bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
+        bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
     except tweety_errors.UserNotFound:
         bot.say("User not found.")
@@ -241,7 +240,6 @@ def output_user(bot, trigger, sn):
         return
     except (
         tweety_errors.GuestTokenNotFound,
-        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
