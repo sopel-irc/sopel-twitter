@@ -16,6 +16,7 @@ from sopel.config.types import (
     BooleanAttribute,
     ListAttribute,
     NO_DEFAULT,
+    SecretAttribute,
     StaticSection,
     ValidatedAttribute,
 )
@@ -29,6 +30,8 @@ NEWLINE_RUN_REGEX = re.compile(r"\s*\n[\n\s]*")
 
 
 class TwitterSection(StaticSection):
+    username = ValidatedAttribute('username', default=NO_DEFAULT)
+    password = SecretAttribute('password', default=NO_DEFAULT)
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
     alternate_domains = ListAttribute(
         "alternate_domains",
@@ -38,6 +41,12 @@ class TwitterSection(StaticSection):
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
+    config.twitter.configure_setting(
+        'username',
+        "Username for your bot's Twitter account:")
+    config.twitter.configure_setting(
+        'password',
+        "Password for your bot's Twitter account:")
     config.twitter.configure_setting(
         'show_quoted_tweets', 'When a tweet quotes another status, '
         'show the quoted tweet on a second IRC line?')
@@ -180,7 +189,15 @@ def user_command(bot, trigger):
 
 def output_status(bot, trigger, id_):
     try:
-        tweet = Twitter("sopel-twitter").tweet_detail(id_)
+        app = Twitter("sopel-twitter")
+        # try to use saved session
+        app.connect()
+
+        if not app.session.logged_in:
+            # existing session not present
+            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+
+        tweet = app.tweet_detail(id_)
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
@@ -222,7 +239,15 @@ def output_status(bot, trigger, id_):
 
 def output_user(bot, trigger, sn):
     try:
-        user = Twitter("sopel-twitter").get_user_info(sn)
+        app = Twitter("sopel-twitter")
+        # try to use saved session
+        app.connect()
+
+        if not app.session.logged_in:
+            # existing session not present
+            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+
+        user = app.get_user_info(sn)
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
