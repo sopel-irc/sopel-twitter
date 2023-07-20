@@ -9,14 +9,14 @@ from datetime import datetime
 import json
 import re
 
-from tweety.bot import Twitter
-from tweety import exceptions_ as tweety_errors
+from tweety import Twitter, exceptions_ as tweety_errors
 
 from sopel import plugin, tools
 from sopel.config.types import (
     BooleanAttribute,
     ListAttribute,
     NO_DEFAULT,
+    SecretAttribute,
     StaticSection,
     ValidatedAttribute,
 )
@@ -30,7 +30,8 @@ NEWLINE_RUN_REGEX = re.compile(r"\s*\n[\n\s]*")
 
 
 class TwitterSection(StaticSection):
-    cookies = ValidatedAttribute('cookies', default=NO_DEFAULT)
+    username = ValidatedAttribute('username', default=NO_DEFAULT)
+    password = SecretAttribute('password', default=NO_DEFAULT)
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
     alternate_domains = ListAttribute(
         "alternate_domains",
@@ -40,9 +41,12 @@ class TwitterSection(StaticSection):
 
 def configure(config):
     config.define_section('twitter', TwitterSection, validate=False)
-    tok = input('REQUIRED: Twitter auth_token cookie value: ')
-    ct0 = input('REQUIRED: Twitter ct0 cookie value: ')
-    config.twitter.cookies = 'auth_token={};ct0={}'.format(tok, ct0)
+    config.twitter.configure_setting(
+        'username',
+        "Username for your bot's Twitter account:")
+    config.twitter.configure_setting(
+        'password',
+        "Password for your bot's Twitter account:")
     config.twitter.configure_setting(
         'show_quoted_tweets', 'When a tweet quotes another status, '
         'show the quoted tweet on a second IRC line?')
@@ -50,6 +54,11 @@ def configure(config):
 
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
+
+
+def _get_tweety_session_name(bot):
+    """Return a session name for this plugin + bot config."""
+    return "sopel-twitter.{}".format(bot.settings.basename)
 
 
 def get_preferred_media_item_link(item):
@@ -185,9 +194,17 @@ def user_command(bot, trigger):
 
 def output_status(bot, trigger, id_):
     try:
-        tweet = Twitter(cookies=bot.settings.twitter.cookies).tweet_detail(id_)
+        app = Twitter(_get_tweety_session_name(bot))
+        # try to use saved session
+        app.connect()
+
+        if not app.session.logged_in:
+            # existing session not present
+            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+
+        tweet = app.tweet_detail(id_)
     except tweety_errors.InvalidCredentials:
-        bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
+        bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
     except tweety_errors.AuthenticationRequired:
         bot.say("That content requires authentication; sorry!")
@@ -200,7 +217,6 @@ def output_status(bot, trigger, id_):
         return
     except (
         tweety_errors.GuestTokenNotFound,
-        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
@@ -228,9 +244,17 @@ def output_status(bot, trigger, id_):
 
 def output_user(bot, trigger, sn):
     try:
-        user = Twitter(cookies=bot.settings.twitter.cookies).get_user_info(sn)
+        app = Twitter(_get_tweety_session_name(bot))
+        # try to use saved session
+        app.connect()
+
+        if not app.session.logged_in:
+            # existing session not present
+            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+
+        user = app.get_user_info(sn)
     except tweety_errors.InvalidCredentials:
-        bot.say("Incorrect plugin configuration. Please ask my owner to set correct cookies.")
+        bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
     except tweety_errors.UserNotFound:
         bot.say("User not found.")
@@ -246,7 +270,6 @@ def output_user(bot, trigger, sn):
         return
     except (
         tweety_errors.GuestTokenNotFound,
-        tweety_errors.InvalidCredentials,
         tweety_errors.ProxyParseError,
         tweety_errors.UnknownError,
     ):
