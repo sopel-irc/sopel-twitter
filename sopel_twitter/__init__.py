@@ -56,6 +56,11 @@ def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
 
+def _get_tweety_session_name(bot):
+    """Return a session name for this plugin + bot config."""
+    return "sopel-twitter.{}".format(bot.settings.basename)
+
+
 def get_preferred_media_item_link(item):
     """
     Guess the most useful link for a given piece of embedded media.
@@ -189,7 +194,7 @@ def user_command(bot, trigger):
 
 def output_status(bot, trigger, id_):
     try:
-        app = Twitter("sopel-twitter")
+        app = Twitter(_get_tweety_session_name(bot))
         # try to use saved session
         app.connect()
 
@@ -239,7 +244,7 @@ def output_status(bot, trigger, id_):
 
 def output_user(bot, trigger, sn):
     try:
-        app = Twitter("sopel-twitter")
+        app = Twitter(_get_tweety_session_name(bot))
         # try to use saved session
         app.connect()
 
