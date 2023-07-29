@@ -212,6 +212,9 @@ def output_status(bot, trigger, id_):
             app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
         tweet = app.tweet_detail(id_)
+    except tweety_errors.DeniedLogin:
+        bot.say("Twitter wouldn't let me log in. Please try again later. If this issue persists, contact my owner.")
+        return
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
@@ -262,6 +265,9 @@ def output_user(bot, trigger, sn):
             app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
         user = app.get_user_info(sn)
+    except tweety_errors.DeniedLogin:
+        bot.say("Twitter wouldn't let me log in. Please try again later. If this issue persists, contact my owner.")
+        return
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
