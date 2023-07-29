@@ -7,6 +7,7 @@ from __future__ import unicode_literals, absolute_import, division, print_functi
 
 from datetime import datetime
 import json
+import os.path
 import re
 
 from tweety import Twitter, exceptions_ as tweety_errors
@@ -58,7 +59,15 @@ def setup(bot):
 
 def _get_tweety_session_name(bot):
     """Return a session name for this plugin + bot config."""
-    return "sopel-twitter.{}".format(bot.settings.basename)
+    return os.path.join(
+        _get_tweety_session_path(bot),
+        "sopel-twitter.{}".format(bot.settings.basename)
+    )
+
+
+def _get_tweety_session_path(bot):
+    """Return the path to where this plugin's sessions should live."""
+    return os.path.expanduser(bot.settings.homedir)
 
 
 def get_preferred_media_item_link(item):
