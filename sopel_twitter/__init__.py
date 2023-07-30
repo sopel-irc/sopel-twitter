@@ -61,7 +61,7 @@ def _get_tweety_session_name(bot):
     """Return a session name for this plugin + bot config."""
     return os.path.join(
         _get_tweety_session_path(bot),
-        "sopel-twitter.{}".format(bot.settings.basename)
+        "{}.sopel-twitter".format(bot.settings.basename)
     )
 
 
