@@ -46,16 +46,16 @@ alternate_domains =
 
 ### Important note
 
-The library this plugin uses for Twitter data access stores its login session
-data in **the current working directory**. For Sopel, that is the directory
-from which the `sopel` command is run.
+The library this plugin uses for Twitter data access previously stored its
+login session data in **the current working directory**. For Sopel, that was
+the directory from which the `sopel` command was run.
 
-A future library release promises to add support for specifying where to store
-session data, at which point this plugin will be updated to use the `homedir`
-of Sopel's configuration (`~/.sopel` by default). You will be able to locate
-the old session files by running e.g. `find / -type f -name
-'sopel-twitter*.json' 2>/dev/null`. (Running `find` on `/` tends to output
-numerous "Permission denied" errors, so suppressing stderr is recommended.)
+As of sopel-twitter 1.3.1, a newer library version became available with
+support for storing session data in Sopel's `homedir` instead. You can clean
+up the old session files left behind by sopel-twitter 1.3.0 by running e.g.
+`find / -type f -name 'sopel-twitter*.json' 2>/dev/null`. (Running `find` on
+`/` tends to output numerous "Permission denied" errors, so suppressing stderr
+is recommended.)
 
 ## Usage
 
