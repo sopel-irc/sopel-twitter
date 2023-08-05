@@ -1,3 +1,15 @@
+Changes between 1.3.0 and 1.3.1
+===============================
+
+Changed:
+* Use updated `tweety-ns` with option to specify session JSON storage location (#51)
+  * Now stored in Sopel's `homedir`
+  * See README for shell commands suggested for cleaning up the old ones
+
+Fixed:
+* Handle new `DeniedLogin` exception (#52)
+
+
 Changes between 1.2.0 and 1.3.0
 ===============================
 
