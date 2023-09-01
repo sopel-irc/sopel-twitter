@@ -56,6 +56,18 @@ def configure(config):
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
+    # rename old session .json to new .tw_session format
+    # but only if there isn't already a .tw_session file
+    session_base = _get_tweety_session_name(bot)
+    session_json = session_base + '.json'
+    session_tw = session_base + '.tw_session'
+
+    if (
+        os.path.isfile(session_json)
+        and not os.path.isfile(session_tw)
+    ):
+        os.rename(session_json, session_tw)
+
 
 def _get_tweety_session_name(bot):
     """Return a session name for this plugin + bot config."""
