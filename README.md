@@ -44,7 +44,7 @@ alternate_domains =
 # Default: fxtwitter.com, vxtwitter.com, nitter.net
 ```
 
-### Important note
+### Important housekeeping notes
 
 The library this plugin uses for Twitter data access previously stored its
 login session data in **the current working directory**. For Sopel, that was
@@ -56,6 +56,11 @@ up the old session files left behind by sopel-twitter 1.3.0 by running e.g.
 `find / -type f -name 'sopel-twitter*.json' 2>/dev/null`. (Running `find` on
 `/` tends to output numerous "Permission denied" errors, so suppressing stderr
 is recommended.)
+
+Prior to the release of sopel-twitter 1.3.2, the session data filename changed
+upstream from `.json` to `.tw_session`. This plugin will attempt to rename the
+old session file if it exists, but if that fails you might want to clean up the
+leftover `config_name.sopel-twitter.json` file.
 
 ## Usage
 

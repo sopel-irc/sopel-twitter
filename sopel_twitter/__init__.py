@@ -56,6 +56,18 @@ def configure(config):
 def setup(bot):
     bot.config.define_section('twitter', TwitterSection)
 
+    # rename old session .json to new .tw_session format
+    # but only if there isn't already a .tw_session file
+    session_base = _get_tweety_session_name(bot)
+    session_json = session_base + '.json'
+    session_tw = session_base + '.tw_session'
+
+    if (
+        os.path.isfile(session_json)
+        and not os.path.isfile(session_tw)
+    ):
+        os.rename(session_json, session_tw)
+
 
 def _get_tweety_session_name(bot):
     """Return a session name for this plugin + bot config."""
@@ -215,6 +227,9 @@ def output_status(bot, trigger, id_):
     except tweety_errors.DeniedLogin:
         bot.say("Twitter wouldn't let me log in. Please try again later. If this issue persists, contact my owner.")
         return
+    except tweety_errors.ActionRequired:
+        bot.say("Twitter's being (unusually) difficult. I can't sign in.")
+        return
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
         return
@@ -267,6 +282,9 @@ def output_user(bot, trigger, sn):
         user = app.get_user_info(sn)
     except tweety_errors.DeniedLogin:
         bot.say("Twitter wouldn't let me log in. Please try again later. If this issue persists, contact my owner.")
+        return
+    except tweety_errors.ActionRequired:
+        bot.say("Twitter's being (unusually) difficult. I can't sign in.")
         return
     except tweety_errors.InvalidCredentials:
         bot.say("Can't authenticate with Twitter. Please ask my owner to check my credentials.")
