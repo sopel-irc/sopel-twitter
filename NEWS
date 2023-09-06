@@ -1,3 +1,19 @@
+Changes between 1.3.1 and 1.3.2
+===============================
+
+Changed:
+* Use updated `tweety-ns` 0.9.9 with updated session storage filename (#53)
+  * `.json` has become `.tw_session`
+  * `sopel-twitter` will automatically rename the old `.json` file(s) if
+    present, unless the corresponding `tw_session` file already exists (i.e.
+    `tweety-ns` was updated prior to installing `sopel-twitter` 1.3.2)
+
+Fixed:
+* Handle new `ActionRequired` exception type (#53)
+  * Just a graceful failure message, for now; open an issue if you actually run
+    into this, to help gauge how important more comprehensive handling might be.
+
+
 Changes between 1.3.0 and 1.3.1
 ===============================
 
