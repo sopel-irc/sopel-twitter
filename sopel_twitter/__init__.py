@@ -321,6 +321,12 @@ def output_user(bot, trigger, sn):
             bio = bio.replace(link['url'], link['expanded_url'])
         bio = tools.web.decode(bio)
 
+    # fixup undocumentedly nullable int fields
+    # upstream issue suggesting improvement: https://github.com/mahrtayyab/tweety/issues/87
+    for field in ('friends_count', 'followers_count', 'statuses_count', 'favourites_count'):
+        if type(getattr(user, field, None) is None:
+            setattr(user, field, 0)
+
     message = ('[Twitter] {user.name} (@{user.screen_name}){verified}{protected}{location}{url}'
                ' | {user.friends_count:,} friends, {user.followers_count:,} followers'
                ' | {user.statuses_count:,} tweets, {user.favourites_count:,} ♥s'
