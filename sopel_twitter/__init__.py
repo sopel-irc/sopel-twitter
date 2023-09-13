@@ -24,7 +24,7 @@ from sopel.config.types import (
 
 logger = tools.get_logger('twitter')
 
-DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?twitter\.com/"
+DOMAIN_REGEX = r"https?://(?:m(?:obile)?\.)?(?:twitter|x)\.com/"
 STATUS_REGEX = r"(?:\w+|i/web)/status/(?P<status>\d+)"
 USER_REGEX = r"(?P<user>\w+)/?(?:\?.*)?$"
 NEWLINE_RUN_REGEX = re.compile(r"\s*\n[\n\s]*")
