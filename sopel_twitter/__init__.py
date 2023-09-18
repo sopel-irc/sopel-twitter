@@ -184,7 +184,7 @@ def _twitter_alt_domains(path_regex):
         :rtype: List[re.Pattern]
         """
         return [
-            re.compile(r"https?://{}/{}".format(domain, path_regex))
+            re.compile(r"https?://{}/{}".format(re.escape(domain), path_regex))
             for domain in settings.twitter.alternate_domains
         ]
 
