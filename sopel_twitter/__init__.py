@@ -36,7 +36,7 @@ class TwitterSection(StaticSection):
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
     alternate_domains = ListAttribute(
         "alternate_domains",
-        default=["vxtwitter.com", "nitter.net"],
+        default=["vxtwitter.com", "fixvx.com", "nitter.net"],
     )
 
 
