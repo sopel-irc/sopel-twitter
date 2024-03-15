@@ -13,6 +13,20 @@ $ pip install sopel-twitter
 If you want to use the development version, simply clone the repository and use
 `pip install path/to/sopel-twitter`
 
+### Newer library versions
+
+`sopel-twitter` relies on [a third-party library][tweety-source] to access data,
+which does not always publish its latest code to PyPI. If you run into problems
+with this plugin, [install the latest library code][tweety-source-updates] and
+see if that solves your issue.
+
+Please also feel free to submit pull requests updating this plugin's version
+constraints if you have tested a newer library release than what is currently
+allowed. Thanks for your help!
+
+[tweety-source]: https://github.com/mahrtayyab/tweety
+[tweety-source-updates]: https://github.com/mahrtayyab/tweety#keep-synced-with-latest-fixes
+
 ## Configuring
 
 **Twitter account required to use this plugin** as of 1 July 2023. You probably
