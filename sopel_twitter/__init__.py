@@ -250,12 +250,18 @@ def output_status(bot, trigger, id_):
         bot.say("Can't access Twitter data. Please try again later.")
         return
 
-    template = "[Twitter] {tweet} | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
+    preface = "[Twitter] {tweet}"
+    postface = " | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
 
-    bot.say(template.format(tweet=format_tweet(tweet),
-                            RTs=tweet.retweet_counts,
-                            hearts=tweet.likes,
-                            posted=format_time(bot, trigger, tweet.created_on)))
+    bot.say(
+        preface.format(tweet=format_tweet(tweet)),
+        truncation=' […]',
+        trailing=postface.format(
+            RTs=tweet.retweet_counts,
+            hearts=tweet.likes,
+            posted=format_time(bot, trigger, tweet.created_on),
+        ),
+    )
 
     if (
         bot.config.twitter.show_quoted_tweets
@@ -263,10 +269,15 @@ def output_status(bot, trigger, id_):
         and tweet.quoted_tweet is not None
     ):
         tweet = tweet.quoted_tweet
-        bot.say(template.format(tweet='Quoting: ' + format_tweet(tweet),
-                                RTs=tweet.retweet_counts,
-                                hearts=tweet.likes,
-                                posted=format_time(bot, trigger, tweet.created_on)))
+        bot.say(
+            preface.format(tweet=format_tweet(tweet)),
+            truncation=' […]',
+            trailing=postface.format(
+                RTs=tweet.retweet_counts,
+                hearts=tweet.likes,
+                posted=format_time(bot, trigger, tweet.created_on),
+            ),
+        )
 
 
 def output_user(bot, trigger, sn):
