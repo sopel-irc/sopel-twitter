@@ -41,7 +41,7 @@ keywords = [
 requires-python = ">=3.8, <4"
 dependencies = [
     "sopel>=7.1,<9",
-    "tweety-ns>=1.0,<1.1",
+    "tweety-ns~=1.1.2",
 ]
 
 [project.urls]
