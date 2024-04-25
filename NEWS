@@ -1,3 +1,17 @@
+Changes between 1.3.6 and 1.3.7
+===============================
+
+Added:
+* Gracefully truncate long tweet text (#61)
+
+Changed:
+* Upgrade to newer `tweety-ns` library: 1.1.* >= 1.1.2 (#63)
+
+Meta:
+* Add automatic package publishing
+* Clean up unused source files
+
+
 Changes between 1.3.5 and 1.3.6
 ===============================
 
