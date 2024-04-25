@@ -38,11 +38,10 @@ keywords = [
   "irc",
 ]
 
-# Python spec should be enabled along with bumping `sopel` to 8+
-# requires-python = ">=3.8, <4"
+requires-python = ">=3.8, <4"
 dependencies = [
-    "sopel>=7.1,<9",
-    "tweety-ns~=1.1.2",
+    "sopel>=8.0",
+    "tweety-ns>=1.1.2,<2",
 ]
 
 [project.urls]
