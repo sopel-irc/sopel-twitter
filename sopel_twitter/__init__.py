@@ -219,7 +219,7 @@ def output_status(bot, trigger, id_):
         # try to use saved session
         app.connect()
 
-        if not app.session.logged_in:
+        if not app.is_user_authorized:
             # existing session not present
             app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
@@ -286,7 +286,7 @@ def output_user(bot, trigger, sn):
         # try to use saved session
         app.connect()
 
-        if not app.session.logged_in:
+        if not app.is_user_authorized:
             # existing session not present
             app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
