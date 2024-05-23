@@ -236,6 +236,12 @@ def output_status(bot, trigger, id_):
     except tweety_errors.AuthenticationRequired:
         bot.say("That content requires authentication; sorry!")
         return
+    except tweety_errors.UserProtected:
+        bot.say("User profile is protected.")
+        return
+    except tweety_errors.ProtectedTweet:
+        bot.say("Tweet is protected.")
+        return
     except tweety_errors.RateLimitReached:
         bot.say("Rate limit reached. Please try again later.")
         return
