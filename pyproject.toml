@@ -14,7 +14,7 @@ readme = { file=["README.md", "NEWS"], content-type="text/markdown" }
 
 [project]
 name = "sopel-twitter"
-version = "1.3.7"
+version = "1.3.8"
 description = "A Twitter plugin for Sopel"
 
 authors = [
