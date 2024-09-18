@@ -256,11 +256,11 @@ def output_status(bot, trigger, id_):
         bot.say("Can't access Twitter data. Please try again later.")
         return
 
-    preface = "[Twitter] {tweet}"
+    preface = "[Twitter] {quoting}{tweet}"
     postface = " | {RTs} RTs | {hearts} ♥s | Posted: {posted}"
 
     bot.say(
-        preface.format(tweet=format_tweet(tweet)),
+        preface.format(quoting='', tweet=format_tweet(tweet)),
         truncation=' […]',
         trailing=postface.format(
             RTs=tweet.retweet_counts,
@@ -276,7 +276,7 @@ def output_status(bot, trigger, id_):
     ):
         tweet = tweet.quoted_tweet
         bot.say(
-            preface.format(tweet=format_tweet(tweet)),
+            preface.format(quoting='Quoting ', tweet=format_tweet(tweet)),
             truncation=' […]',
             trailing=postface.format(
                 RTs=tweet.retweet_counts,
