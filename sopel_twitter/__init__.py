@@ -115,7 +115,7 @@ def format_tweet(tweet):
 
     :param tweet: the tweet object, as decoded JSON
     :return: the formatted tweet
-    :rtype: tuple
+    :rtype: str
     """
     text = NEWLINE_RUN_REGEX.sub("\n", tweet.text)
     text = text.replace("\n", " \u23CE ")  # Unicode symbol to indicate line-break
@@ -216,12 +216,10 @@ def user_command(bot, trigger):
 def output_status(bot, trigger, id_):
     try:
         app = Twitter(_get_tweety_session_name(bot))
-        # try to use saved session
-        app.connect()
-
-        if not app.is_user_authorized:
-            # existing session not present
-            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+        # sign_in() checks for an existing session, and tries to use it if
+        # present. It will sign in with username & password if the session
+        # doesn't exist or is expired/invalid.
+        app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
         tweet = app.tweet_detail(id_)
     except tweety_errors.DeniedLogin:
@@ -289,12 +287,10 @@ def output_status(bot, trigger, id_):
 def output_user(bot, trigger, sn):
     try:
         app = Twitter(_get_tweety_session_name(bot))
-        # try to use saved session
-        app.connect()
-
-        if not app.is_user_authorized:
-            # existing session not present
-            app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
+        # sign_in() checks for an existing session, and tries to use it if
+        # present. It will sign in with username & password if the session
+        # doesn't exist or is expired/invalid.
+        app.sign_in(bot.settings.twitter.username, bot.settings.twitter.password)
 
         user = app.get_user_info(sn)
     except tweety_errors.DeniedLogin:
