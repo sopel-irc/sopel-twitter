@@ -1,3 +1,11 @@
+Changes between 1.3.8 and 1.3.9
+===============================
+
+Fixed:
+* Regression that removed "Quoting" indicator from quoted tweets (#67)
+* Poor setup logic that did not correctly handle expired login sessions (#68)
+
+
 Changes between 1.3.7 and 1.3.8
 ===============================
 
