@@ -21,14 +21,13 @@ authors = [
   { name="dgw", email="dgw@technobabbl.es" },
 ]
 
-license = { text="EFL-2.0" }
+license = "EFL-2.0"
+license-files = ["COPYING"]
 dynamic = ["readme"]
 
 classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "License :: Eiffel Forum License (EFL)",
-    "License :: OSI Approved :: Eiffel Forum License",
     "Topic :: Communications :: Chat :: Internet Relay Chat",
 ]
 keywords = [
