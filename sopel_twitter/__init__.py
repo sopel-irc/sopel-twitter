@@ -1,12 +1,13 @@
-# coding=utf-8
 """sopel-twitter
 
 A Twitter plugin for Sopel
-"""
-from __future__ import unicode_literals, absolute_import, division, print_function
 
-from datetime import datetime
-import json
+Copyright 2016-2025 Sopel and sopel-twitter contributors
+
+Licensed under the Eiffel Forum License 2.
+"""
+from __future__ import annotations
+
 import os.path
 import re
 
