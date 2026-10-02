@@ -14,6 +14,7 @@ import re
 from tweety import Twitter, exceptions_ as tweety_errors
 
 from sopel import plugin, tools
+from urllib.parse import urlparse, urlunparse
 from sopel.config.types import (
     BooleanAttribute,
     ListAttribute,
@@ -37,8 +38,9 @@ class TwitterSection(StaticSection):
     show_quoted_tweets = BooleanAttribute('show_quoted_tweets', default=True)
     alternate_domains = ListAttribute(
         "alternate_domains",
-        default=["vxtwitter.com", "fixvx.com", "nitter.net"],
+        default=["vxtwitter.com", "fixvx.com", "nitter.net", "xcancel.com"],
     )
+    cancel_links = BooleanAttribute('cancel_links', default=False)
 
 
 def configure(config):
@@ -52,6 +54,9 @@ def configure(config):
     config.twitter.configure_setting(
         'show_quoted_tweets', 'When a tweet quotes another status, '
         'show the quoted tweet on a second IRC line?')
+    config.twitter.configure_setting(
+        'cancel_links', 'Repost non-xcancel.com links using xcancel.com?'
+    )
 
 
 def setup(bot):
@@ -192,16 +197,30 @@ def _twitter_alt_domains(path_regex):
     return loader
 
 
+def cancel_link(url):
+    """Cancel a ``url`` (modify it to use ``xcancel.com``)."""
+    parsed = urlparse(url)
+    # Always replace the netloc with xcancel.com, preserving port if present
+    canceled_netloc = 'xcancel.com'
+    if parsed.port:
+        canceled_netloc += f":{parsed.port}"
+    return urlunparse(parsed._replace(netloc=canceled_netloc))
+
+
 @plugin.url_lazy(_twitter_alt_domains(STATUS_REGEX))
 @plugin.url(DOMAIN_REGEX + STATUS_REGEX)
 def url_status(bot, trigger):
     output_status(bot, trigger, trigger.group("status"))
+    if bot.config.twitter.cancel_links and not '//xcancel.com/' in trigger:
+        bot.say(f"[Twitter] {cancel_link(trigger)}")
 
 
 @plugin.url_lazy(_twitter_alt_domains(USER_REGEX))
 @plugin.url(DOMAIN_REGEX + USER_REGEX)
 def url_user(bot, trigger):
     output_user(bot, trigger, trigger.group("user"))
+    if bot.config.twitter.cancel_links and not '//xcancel.com/' in trigger:
+        bot.say(f"[Twitter] {cancel_link(trigger)}")
 
 
 @plugin.commands('twitinfo')
